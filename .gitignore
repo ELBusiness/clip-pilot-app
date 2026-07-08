@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.env
+.env.local
+data/*.db*
+uploads/*
+!uploads/.gitkeep
+exports/*
+!exports/.gitkeep
+npm-debug.log*
+.npm-cache/
