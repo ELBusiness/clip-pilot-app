@@ -1,167 +1,208 @@
-# Clip Pilot
+# Perfect Season
 
-Clip Pilot is a local-first MVP for preparing one short-form video for YouTube Shorts, TikTok, and Instagram Reels. It uses FFmpeg for safe media conversion, SQLite for local history, OAuth for YouTube, and explicit manual workflows where an approved posting integration is not configured.
+Multi-sport roster-draft games in the style of the viral **82-0**: spin for a
+franchise and an era, draft one legend at a time into every roster spot, then
+simulate a full season and find out how close you got to never losing a game.
 
-It does **not** collect platform passwords, automate a browser, bypass login, scrape accounts, or imitate a mobile app.
+Four games ship today, all from one engine:
 
-## What works
+| Game | Sport | Season | Roster | Real record to beat |
+|---|---|---|---|---|
+| `162-0` | Baseball (MLB) | 162 games | 11 | 116 wins — 1906 Cubs, 2001 Mariners |
+| `82-0` | Basketball (NBA) | 82 games | 5 | 73 wins — 2015-16 Warriors |
+| `17-0` | Football (NFL) | 17 games | 10 | 16-0 — 2007 Patriots |
+| `38-0` | Soccer (English top flight) | 38 games | 11 | 32 wins — 2017-18 Man City |
 
-- Upload `.mp4` or `.mov` files up to 500 MB and 180 seconds.
-- Inspect duration, resolution, format, codecs, file size, and 9:16 orientation with FFprobe.
-- Create 1080×1920 H.264/AAC MP4 exports for all three platforms. Non-vertical content is scaled and padded rather than cropped.
-- Extract a thumbnail, preview the prepared clip, adapt captions, and reuse hashtag groups.
-- Store uploads, settings, per-platform statuses, errors, and posted URLs in local SQLite.
-- Connect YouTube, TikTok, and Instagram through official OAuth flows with encrypted refreshable tokens.
-- Automatically upload to TikTok through the approved Content Posting API and to Instagram through the approved resumable Reels publishing flow.
-- Retain downloadable files and manual checklists whenever an account, app permission, or platform capability is unavailable.
+## The bet this repo is making
 
-## Platform support
+The obvious version of this project — clone 82-0 for another sport, ship fast —
+is mostly closed. Within weeks of 82-0 going viral there were `17-0` and `20-0`
+for the NFL, at least six competing `38-0` sites for the Premier League, a
+`162-0` for baseball, and three knockoff apps chasing the official 82-0 app on
+the stores. Being fourth to a reskin is not a business.
 
-| Platform | MVP behavior | Why |
-|---|---|---|
-| YouTube Shorts | Official OAuth + YouTube Data API upload; supports private, unlisted, public, scheduling, and a generated thumbnail | The `videos.insert` API supports uploads. New, unaudited Google API projects may be restricted to private uploads until audited. |
-| TikTok | Official OAuth + Content Posting API binary upload, with live creator/privacy capability checks | Requires a registered TikTok developer app, approved `video.publish` scope, user authorization, and an audit for public visibility. Unaudited clients remain restricted by TikTok. |
-| Instagram Reels | Official Instagram OAuth + resumable Reels upload, processing poll, and publish | Requires an eligible professional account and approved `instagram_business_basic` and `instagram_business_content_publish` permissions. |
+So the architecture is the bet instead. Everything sport-specific lives behind
+a single `Ruleset` interface, which means a new sport is a data pack and a
+scoring function, not a new app. When the next league trends, the turnaround is
+a day. Two things follow from that:
 
-Official references: [YouTube videos.insert](https://developers.google.com/youtube/v3/docs/videos/insert), [TikTok Content Posting API](https://developers.tiktok.com/products/content-posting-api), and [Meta Instagram content publishing](https://developers.facebook.com/docs/instagram-platform/content-publishing/).
+- **The engine is the asset**, not any one game.
+- **The simulation is the differentiator.** The incumbents mostly add a
+  roster's counting stats into a "strength rating" and map it onto a record.
+  That is fast to build and it feels arbitrary to play, because it is. This one
+  models each sport the way that sport is actually modelled.
 
-## Prerequisites
+## How the simulation works
 
-- Node.js 22 or newer (Node 24 is recommended for the built-in SQLite API).
-- FFmpeg and FFprobe on `PATH`.
-- A Google Cloud OAuth application only if direct YouTube upload is needed.
+Every sport reduces a roster to two numbers — expected points scored and
+allowed per game — and then plays the season one game at a time against
+opponents drawn from the league's quality distribution. Simulating game by game
+rather than mapping a rating straight onto a record matters: a great roster can
+still drop a game it should have won, which is the entire drama of chasing a
+perfect season.
 
-### Install FFmpeg
+The record is then checked against **Pythagenpat** expectation, so the result
+screen can separate "this roster was good" from "these dice were kind."
 
-Windows:
+Where the sports differ:
 
-```powershell
-winget install --id Gyan.FFmpeg -e
-ffmpeg -version
-ffprobe -version
-```
+**Baseball** uses Bill James' Runs Created identity, `RC = OBP × SLG × AB`,
+applied to the *lineup's aggregate rates* over a team-season of at-bats — not
+to nine players summed individually, which double-counts badly. Run prevention
+comes from staff ERA weighted by realistic innings shares, scaled for unearned
+runs. The model calibrates itself: a league-average lineup and a 4.00 ERA staff
+returns 762 runs scored, 697 allowed, and 88 expected wins, which is what an
+average MLB team actually does.
 
-macOS:
+**Basketball** sums the five starters' production — legitimate here, since a
+lineup shares the same possessions — then compresses it against a league-average
+starting five with a fractional exponent to model usage saturation. Five
+30-point scorers cannot all take 30 shots.
 
-```bash
-brew install ffmpeg
-```
+**Football** scores each player against a baseline for his own position, then
+combines them with real positional-value weights. Quarterback carries ~40% of
+offensive outcome alone. Linemen are graded on All-Pro selections and career
+starts, the only durable public record of line play.
 
-Ubuntu/Debian:
+**Soccer** goes straight to Poisson, which is the settled model for goals per
+match, and treats draws as real outcomes — a perfect season means 38 wins, not
+38 unbeaten.
 
-```bash
-sudo apt update && sudo apt install ffmpeg
-```
+Calibration targets are real seasons, not vibes. Soccer's model returns ~2.7
+goals a game for an all-time front six (the 2017-18 champions scored 2.79) and
+~0.6 conceded for an all-time back line (the 2018-19 champions conceded 0.61).
 
-If the binaries are not on `PATH`, set `FFMPEG_PATH` and `FFPROBE_PATH` in `.env` to their absolute paths.
+### Why 162-0 is not actually reachable
 
-## Setup
+It is worth saying plainly: with an honest baseball model, a perfect 162-game
+season has odds around 1 in 20,000 even with optimal drafting. That is a fact
+about baseball, not a bug in the sim, and faking it would mean throwing away
+the model that makes the game feel real.
 
-1. Install dependencies:
+So every result is also graded against **the best real season on record**. A
+129-33 means something — it beat the 2001 Mariners. Chasing 116 is a target
+players can actually hit, argue about, and share. The title stays `162-0`
+because that is what people search for; the scoreboard is honest underneath it.
 
-   ```powershell
-   npm install
-   ```
+Basketball and football, with their shorter seasons, do produce genuine perfect
+runs — roughly 4% and 1% of optimally drafted rosters respectively.
 
-2. Copy `.env.example` to `.env`.
+## Design decisions that matter
 
-3. Generate a local encryption key. PowerShell example:
+**No dead spins.** The genre's worst failure is landing on a franchise/era with
+nobody you can legally play; it reads as the game being broken rather than as a
+hard choice. `eligibleCombos` filters the reel to pools that can actually fill a
+slot you still have open, so every spin is playable and the tension comes from
+the trade-off. This is enforced by a test.
 
-   ```powershell
-   $bytes = New-Object byte[] 32
-   [Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
-   [Convert]::ToBase64String($bytes)
-   ```
+**Seeded and reproducible.** A run is fully described by its seed and picks, so
+a share link replays someone else's exact draft — same reel, same pools — rather
+than just showing their score. You do not beat a number, you beat a specific
+run. The season seed is derived from the roster too, so re-simulating cannot be
+used to reroll a bad result.
 
-   Put the output in `APP_ENCRYPTION_KEY`. Changing or losing this key makes stored OAuth tokens unreadable.
+**One re-spin per run.** A scarce resource turns a bad spin into a decision.
 
-4. Start the app:
+**Mobile-first, not desktop-shrunk.** The draft never scrolls the page, tap
+targets clear 44px, and the type scale is viewport-driven.
 
-   ```powershell
-   npm run dev
-   ```
-
-5. Open `http://localhost:3000`.
-
-The SQLite database is created automatically at `data/clip-pilot.db`. Uploaded originals and exports stay in `uploads/` and `exports/`; all three locations are excluded from Git.
-
-## Platform OAuth setup
-
-Every connector also requires `APP_ENCRYPTION_KEY`. Tokens are encrypted with AES-256-GCM before SQLite storage.
-
-### YouTube
-
-1. Create or select a project in Google Cloud Console.
-2. Enable **YouTube Data API v3**.
-3. Configure the OAuth consent screen.
-4. Create an OAuth 2.0 Client ID for a web application.
-5. Add `http://localhost:3000/api/youtube/callback` as an authorized redirect URI.
-6. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, and `APP_ENCRYPTION_KEY` in `.env`.
-7. Restart Clip Pilot and choose **Connect YouTube**.
-
-Only the `youtube.upload` scope is requested. The OAuth refresh token is encrypted with AES-256-GCM before it is stored in SQLite. Production deployment should use HTTPS, a managed secret store, access control around the dashboard, and a managed database.
-
-### TikTok
-
-1. Create a **Desktop** app in TikTok for Developers and add Login Kit and Content Posting API. Desktop mode permits the localhost callback and uses PKCE.
-2. Register `http://localhost:3000/api/tiktok/callback` as the redirect URI.
-3. Request approval for `video.publish`. Add the app's client key and secret to `.env.local`.
-4. Restart Clip Pilot and choose **Connect TikTok**.
-
-Clip Pilot queries creator info before every post, uses only privacy values returned for that creator, checks the account-specific duration limit, uploads the MP4 in chunks, and polls publishing status. TikTok restricts unaudited clients and may allow only private visibility until its review is complete.
-
-### Instagram
-
-1. Create a Meta developer app with the Instagram API product.
-2. Configure Instagram Login and register `http://localhost:3000/api/instagram/callback`.
-3. Request `instagram_business_basic` and `instagram_business_content_publish` through App Review.
-4. Add the Instagram client ID and secret to `.env.local`, restart Clip Pilot, and choose **Connect Instagram Reels**.
-
-The connector creates a Reel container, streams the local MP4 through Meta's resumable upload endpoint, waits for processing, publishes the container, and stores the returned permalink. Personal or otherwise ineligible accounts cannot publish through this API.
-
-## Scheduling behavior
-
-YouTube scheduling uploads the file immediately as private and sends a future `publishAt` timestamp. TikTok and Instagram do not expose equivalent native Reel scheduling in these posting APIs, so future times retain the manual checklist and disable automatic Post Now. A durable always-on worker would be required to automate those future times safely.
-
-## Commands
-
-```powershell
-npm run dev        # local development
-npm run typecheck  # TypeScript validation
-npm test           # unit tests
-npm run build      # production build
-npm start          # run production build
-```
+**Static.** All four games prerender to static HTML with no server calls, so
+hosting is free and a viral spike costs nothing.
 
 ## Project structure
 
 ```text
-app/                         Next.js pages and server API routes
-components/                  Dashboard UI
-lib/                         database, validation, caption, paths, token vault
-video-processing/            FFmpeg module boundary
-platforms/youtube/           official YouTube OAuth/upload connector
-platforms/tiktok/            official OAuth, creator checks, chunked Direct Post
-platforms/instagram/         official OAuth and resumable Reels publishing
-db/schema.sql                SQLite schema
-uploads/                     private original files (Git-ignored)
-exports/                     prepared MP4s and thumbnails (Git-ignored)
+engine/            Sport-agnostic core — no React, no sport knowledge
+  types.ts           The Ruleset contract every sport implements
+  rng.ts             Seeded deterministic RNG (mulberry32, Poisson, normal)
+  draft.ts           Spin/pick state machine, feasibility-aware reel
+  season.ts          Game-by-game simulation, Pythagenpat expectation
+  run.ts             Orchestration: draft -> rating -> season
+  share.ts           Share-code encode/decode, daily seeds
+sports/
+  parse.ts           Pipe-delimited roster table parser
+  baseball/          162-0 — Runs Created + staff ERA  (flagship)
+  basketball/        82-0  — usage-compressed lineup production
+  football/          17-0  — position-weighted grading
+  soccer/            38-0  — Poisson goals, draws enabled
+app/                 Next.js routes; /[slug] renders each game
+components/          Game shell, draft board, season report
+scripts/             Lahman database importer
+tests/               Engine determinism, sim math, data integrity
 ```
 
-## Production TODOs
+## Data and provenance
 
-- Complete TikTok and Meta app review before enabling these connectors for accounts outside developer/test roles.
-- Add durable publish-status polling for TikTok jobs that remain processing beyond the initial request.
-- Add authentication before exposing this dashboard beyond localhost.
-- Add a worker queue and object storage before processing large videos in a multi-user deployment.
+Roster packs are hand-curated career lines for recognizable players — enough to
+make each game playable and balanced. Pre-2000 figures are the standard
+published career numbers; players with recent or ongoing careers carry rounded
+approximations. Two packs carry explicit caveats in their file headers:
 
-## Data model
+- **Basketball**: steals and blocks were not official NBA statistics before
+  1973-74, so earlier lines use researcher estimates.
+- **Soccer**: attacking output is real (club goals, assists, appearances), but
+  defenders and goalkeepers have no equivalent public counting stat, so that
+  pack carries a labelled editorial strength grade. It is judgment, and it is
+  marked as judgment.
+- **Baseball** includes Negro Leagues players following MLB's 2020 recognition
+  of those records, which are less complete than post-1920 AL/NL bookkeeping.
 
-`db/schema.sql` defines four tables:
+For exact, sourced, season-level baseball data, run the importer:
 
-- `uploads`: source metadata, captions, dimensions, duration, thumbnail, and errors.
-- `platform_posts`: per-platform settings, export, schedule, status, URL, and errors.
-- `hashtag_groups`: built-in and custom reusable groups.
-- `oauth_tokens`: encrypted OAuth token payloads and non-sensitive account labels.
+```bash
+# 1. Download the Lahman database (CC BY-SA 3.0, 1871-present):
+#    https://sabr.org/lahman-database/
+# 2. Unzip People.csv, Batting.csv, Pitching.csv, Fielding.csv into data/lahman/
+npm run import:lahman
+```
 
-Statuses are `READY`, `NEEDS_ACCOUNT_CONNECTION`, `API_NOT_SUPPORTED`, `MANUAL_POST_REQUIRED`, `POSTED`, and `FAILED`.
+That emits `sports/baseball/players.generated.ts` in the same table format, with
+the best seasons per franchise/era/position. The Lahman data is CC BY-SA 3.0 —
+derived data inherits ShareAlike and must credit Sean Lahman, which is why the
+generated file is gitignored rather than committed without that decision.
+
+## Getting started
+
+```bash
+npm install
+npm run dev          # http://localhost:3000
+npm test             # engine determinism, sim math, data integrity
+npm run typecheck
+npm run build        # static export of all four games
+```
+
+Requires Node 22+.
+
+## Adding a sport
+
+Implement `Ruleset` and register it. Concretely:
+
+1. Create `sports/<name>/index.ts`.
+2. Define `slots`, `eras`, `franchises`, and a player table parsed by
+   `parsePlayers`.
+3. Write `rate(roster)` — reduce a roster to `{ offense, defense, factors }`.
+   The `factors` array is what the result screen explains the record with, so
+   make each one something a fan would argue about.
+4. Set `context` (league average, spread, `poisson` or `normal`) and
+   `benchmark` (the best real season).
+5. Add it to `SPORTS` in `sports/index.ts`.
+
+The route, draft loop, reel, share codes, and season report all come for free.
+`tests/sports.test.ts` will immediately check the new pack for unknown
+franchises, thin slots, dead spins, and implausible ratings.
+
+## Native apps
+
+The games are built web-first because that is where this genre spreads — a
+share link into a group chat is the whole growth loop, and an app-store-only
+version has no equivalent. The engine and sport packs are plain TypeScript with
+no DOM dependencies, so they lift into an Expo/React Native shell unchanged;
+only `components/` needs a native counterpart.
+
+## Legal note
+
+Player names and statistics are used to identify real athletes and their public
+performance records. Statistics are facts and not copyrightable; names and
+likenesses are a different question, and any commercial launch should get an
+opinion on right-of-publicity and league trademark exposure in the target
+markets. No league logos, team marks, or player images are used or bundled.

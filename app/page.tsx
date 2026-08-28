@@ -1,17 +1,39 @@
-import Dashboard from "@/components/Dashboard";
-import { listHashtagGroups, listUploads } from "@/lib/db";
-import { tokenStatus } from "@/lib/token-vault";
-
-export const dynamic = "force-dynamic";
+import Link from 'next/link'
+import { SPORTS } from '@/sports'
 
 export default function Home() {
-  const connections = {
-    youtube: { connected: false, accountLabel: null as string | null, configured: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.APP_ENCRYPTION_KEY), approved: true },
-    tiktok: { connected: false, accountLabel: null as string | null, configured: Boolean(process.env.TIKTOK_CLIENT_KEY && process.env.TIKTOK_CLIENT_SECRET && process.env.APP_ENCRYPTION_KEY), approved: false },
-    instagram: { connected: false, accountLabel: null as string | null, configured: Boolean(process.env.INSTAGRAM_CLIENT_ID && process.env.INSTAGRAM_CLIENT_SECRET && process.env.APP_ENCRYPTION_KEY), approved: false },
-  };
-  for (const platform of ["youtube", "tiktok", "instagram"] as const) {
-    try { Object.assign(connections[platform], tokenStatus(platform), { approved: connections[platform].approved || tokenStatus(platform).connected }); } catch { /* Setup state is shown in the UI. */ }
-  }
-  return <Dashboard initialUploads={listUploads()} initialGroups={listHashtagGroups()} initialConnections={connections} />;
+  return (
+    <main className="shell">
+      <h1 className="home-title">
+        Perfect
+        <br />
+        <em>Season</em>
+      </h1>
+      <p className="home-sub">
+        Spin for a franchise and an era. Draft one legend at a time. Then find out how
+        close your roster gets to a season without a single loss.
+      </p>
+
+      <nav className="sport-grid">
+        {SPORTS.map((sport) => (
+          <Link key={sport.id} href={`/${sport.slug}`} className="sport-card">
+            <span className="sport-record num">{sport.slug}</span>
+            <span>
+              <span className="sport-name">
+                {sport.sport} · {sport.league}
+              </span>
+              <span className="sport-tag">{sport.tagline}</span>
+            </span>
+          </Link>
+        ))}
+      </nav>
+
+      <div className="spacer" />
+
+      <p className="sport-tag" style={{ marginTop: 20 }}>
+        Every run is seeded, so a share link replays the exact same draft. Records are
+        measured against what real teams actually did.
+      </p>
+    </main>
+  )
 }

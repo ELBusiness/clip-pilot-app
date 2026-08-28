@@ -1,22 +1,21 @@
 {
-  "name": "clip-pilot",
+  "name": "perfect-season",
   "version": "0.1.0",
   "private": true,
+  "description": "Multi-sport perfect-season roster draft games. Spin for a franchise and era, draft legends, simulate the season.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --import tsx tests/*.test.ts"
+    "test": "node --test --import tsx tests/*.test.ts",
+    "import:lahman": "tsx scripts/import-lahman.ts"
   },
   "dependencies": {
-    "googleapis": "173.0.0",
-    "lucide-react": "^0.468.0",
     "next": "16.2.10",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "zod": "^3.24.1"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

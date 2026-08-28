@@ -1,9 +1,10 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  experimental: { serverActions: { bodySizeLimit: "500mb" } },
-  serverExternalPackages: ["googleapis"],
-  turbopack: { root: process.cwd() },
-};
+  reactStrictMode: true,
+  experimental: {
+    typedRoutes: true,
+  },
+}
 
-export default nextConfig;
+export default nextConfig
