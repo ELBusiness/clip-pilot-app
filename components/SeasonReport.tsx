@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import BackLink from './BackLink'
 import { useEffect, useState } from 'react'
 import type { RunResult } from '@/engine/run'
 import type { Ruleset } from '@/engine/types'
@@ -20,6 +20,7 @@ export default function SeasonReport({
   onShare,
   onReplay,
   toast,
+  onBack,
 }: {
   ruleset: Ruleset
   result: RunResult
@@ -28,6 +29,7 @@ export default function SeasonReport({
   onShare: () => void
   onReplay: () => void
   toast: string | null
+  onBack?: () => void
 }) {
   const { season, rating, roster } = result
   const beatsRecord = season.wins > ruleset.benchmark.wins
@@ -44,7 +46,7 @@ export default function SeasonReport({
   return (
     <main className="shell">
       <div className="topbar">
-        <Link href="/">← All sports</Link>
+        <BackLink onBack={onBack} />
         <span className="round-pill">Seed {seedLabel}</span>
       </div>
 

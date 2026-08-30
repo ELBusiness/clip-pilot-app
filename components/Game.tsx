@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
+import BackLink from './BackLink'
 import { SPORTS_BY_ID } from '@/sports'
 import {
   candidatesFor,
@@ -23,7 +23,7 @@ import SeasonReport from './SeasonReport'
 const SPIN_MS = 850
 const SPIN_TICK = 70
 
-export default function Game({ sportId }: { sportId: SportId }) {
+export default function Game({ sportId, onBack }: { sportId: SportId; onBack?: () => void }) {
   const ruleset = SPORTS_BY_ID[sportId]
 
   const [state, setState] = useState<DraftState | null>(null)
@@ -167,6 +167,7 @@ export default function Game({ sportId }: { sportId: SportId }) {
         shareCode={encodeRun(state)}
         onShare={share}
         onReplay={() => start((Math.random() * 0xffffffff) >>> 0)}
+        onBack={onBack}
         toast={toast}
       />
     )
@@ -179,7 +180,7 @@ export default function Game({ sportId }: { sportId: SportId }) {
   return (
     <main className="shell">
       <div className="topbar">
-        <Link href="/">← All sports</Link>
+        <BackLink onBack={onBack} />
         <span className="round-pill">
           Pick {Math.min(filled + 1, total)} of {total}
         </span>

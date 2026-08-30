@@ -10,7 +10,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "node --test --import tsx tests/*.test.ts",
-    "import:lahman": "tsx scripts/import-lahman.ts"
+    "import:lahman": "tsx scripts/import-lahman.ts",
+    "build:standalone": "node scripts/build-standalone.mjs"
   },
   "dependencies": {
     "next": "16.2.10",
@@ -21,6 +22,7 @@
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "esbuild": "^0.28.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   },

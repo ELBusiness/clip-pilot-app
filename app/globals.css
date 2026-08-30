@@ -8,6 +8,11 @@
  */
 
 :root {
+  /* This game commits to one dark visual world by choice, so the palette is
+     declared once and every colour is painted explicitly rather than inherited
+     from the host page. */
+  color-scheme: dark;
+
   --bg: #08090c;
   --bg-raised: #12141a;
   --bg-card: #181b23;
