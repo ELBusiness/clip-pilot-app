@@ -188,9 +188,26 @@ incandescent bulbs, and the clay and grass of the field itself.
   card. Player rows are ticket stubs: torn square on the left, rounded on the
   right. Chalk hairlines separate zones instead of grey borders.
 
-It commits to one visual world on purpose, so there is no light theme — but
-every colour including the page ground is painted explicitly, so the page holds
-on any host background.
+### Four palettes
+
+The schemes are places rather than moods, and each defines every token in full
+rather than patching the one before it, so no colour can survive a switch and
+leave one surface reading against another's ground.
+
+| Palette | | |
+|---|---|---|
+| **Night game** | Painted steel under the lights | the default |
+| **Day game** | A paper scorecard in the sun | light |
+| **Clay** | Infield dirt at dusk | warm neutral |
+| **Slate** | Colour out of the way | cool neutral |
+
+Contrast is measured rather than eyeballed. Every palette was checked with WCAG
+ratios across body text, reel type, meter labels, player names, descriptors, and
+the accent pairing behind the SPIN button. The first pass found secondary text
+between 3.8 and 4.5 in all four — under AA — so `--chalk-faint` was lifted in
+each, and Day's accent was deepened from `#b4661a` to `#9c5514` to clear 4.5
+outright rather than resting on the large-text allowance. Nothing now sits below
+5.2.
 
 ## Interface
 

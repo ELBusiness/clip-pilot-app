@@ -172,3 +172,40 @@ export function vibrate(pattern: number | number[]): void {
     // Nothing to do; the game does not depend on it.
   }
 }
+
+/* ---------- Palette ---------- */
+
+export type Palette = 'night' | 'day' | 'clay' | 'slate'
+
+export const PALETTES: { id: Palette; name: string; note: string; swatch: string[] }[] = [
+  { id: 'night', name: 'Night game', note: 'Painted steel under the lights', swatch: ['#101b16', '#2f7a4a', '#ffb627'] },
+  { id: 'day', name: 'Day game', note: 'A paper scorecard in the sun', swatch: ['#f3efe4', '#4a8f5c', '#b4661a'] },
+  { id: 'clay', name: 'Clay', note: 'Infield dirt at dusk, warm neutral', swatch: ['#191512', '#a9683f', '#e08a3c'] },
+  { id: 'slate', name: 'Slate', note: 'Cool neutral, colour out of the way', swatch: ['#14181d', '#46707f', '#7fb3ff'] },
+]
+
+const PALETTE_KEY = 'perfect-season:palette'
+
+export function currentPalette(): Palette {
+  try {
+    const raw = window.localStorage.getItem(PALETTE_KEY)
+    if (raw && PALETTES.some((p) => p.id === raw)) return raw as Palette
+  } catch {
+    // Private windows throw on access; fall through to the default.
+  }
+  return 'night'
+}
+
+/**
+ * Applied to the document element, where the palette blocks are defined, so
+ * every token changes at once and no surface can keep a colour from the scheme
+ * that was on a moment ago.
+ */
+export function applyPalette(palette: Palette): void {
+  try {
+    document.documentElement.dataset['palette'] = palette
+    window.localStorage.setItem(PALETTE_KEY, palette)
+  } catch {
+    // Setting the attribute is what matters; persisting it is a convenience.
+  }
+}

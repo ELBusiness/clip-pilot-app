@@ -19,7 +19,11 @@ import { runSeason, type RunResult } from '@/engine/run'
 import { dailyKey, dailyNumber, dailySeed, dailyShareText, encodeRun, seedCode } from '@/engine/share'
 import type { Combo, Player, Ruleset } from '@/engine/types'
 import {
+  PALETTES,
+  applyPalette,
+  currentPalette,
   hapticsEnabled,
+  type Palette,
   hapticsSupport,
   type HapticsSupport,
   playLand,
@@ -143,6 +147,7 @@ export default function Game() {
   const [sound, setSound] = useState(true)
   const [haptics, setHaptics] = useState(true)
   const [hapticSupport, setHapticSupport] = useState<HapticsSupport>('ok')
+  const [palette, setPalette] = useState<Palette>('night')
   const [dailyDone, setDailyDone] = useState<StoredDaily | null>(null)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
@@ -250,6 +255,9 @@ export default function Game() {
     setSound(soundEnabled())
     setHaptics(hapticsEnabled())
     setHapticSupport(hapticsSupport())
+    const stored = currentPalette()
+    setPalette(stored)
+    applyPalette(stored)
     const url = new URL(window.location.href)
     if (url.searchParams.has('daily')) {
       start(dailySeed('baseball'), 'daily')
@@ -421,6 +429,12 @@ export default function Game() {
           sound={sound}
           haptics={haptics}
           hapticSupport={hapticSupport}
+          palette={palette}
+          onPalette={(next) => {
+            setPalette(next)
+            applyPalette(next)
+            playPick()
+          }}
           onSound={(on) => {
             setSound(on)
             setSoundEnabled(on)
@@ -460,7 +474,9 @@ export default function Game() {
 
           <div style={{ height: 12 }} />
           <Projection ruleset={ruleset} state={state} />
-          <Field ruleset={ruleset} state={state} nextSlotId={nextSlot?.id} />
+          {/* No slot is highlighted here: you may fill any open position, and
+              marking the first one implies a turn order the game does not have. */}
+          <Field ruleset={ruleset} state={state} />
           <div className="spacer" />
         </>
       ) : pending ? (
@@ -476,7 +492,12 @@ export default function Game() {
               Cancel
             </button>
           </div>
-          <Field ruleset={ruleset} state={state} nextSlotId={nextSlot?.id} />
+          {/* Here a highlight is real: these are the slots this player can take. */}
+          <Field
+            ruleset={ruleset}
+            state={state}
+            eligibleSlotIds={slotsForPlayer(ruleset, state, pending).map((s) => s.id)}
+          />
           <div className="spacer" />
         </>
       ) : (
@@ -514,7 +535,7 @@ export default function Game() {
             />
           </div>
 
-          <Dock ruleset={ruleset} state={state} nextSlotId={nextSlot?.id} />
+          <Dock ruleset={ruleset} state={state} />
 
           <p className="pick-prompt">
             {candidates.length} available · best first
@@ -561,6 +582,8 @@ function SettingsSheet({
   sound,
   haptics,
   hapticSupport,
+  palette,
+  onPalette,
   onSound,
   onHaptics,
   onClose,
@@ -568,6 +591,8 @@ function SettingsSheet({
   sound: boolean
   haptics: boolean
   hapticSupport: HapticsSupport
+  palette: Palette
+  onPalette: (next: Palette) => void
   onSound: (on: boolean) => void
   onHaptics: (on: boolean) => void
   onClose: () => void
@@ -613,6 +638,28 @@ function SettingsSheet({
           <span className="toggle" aria-hidden="true" />
         </label>
 
+        <h3 className="section-head">Colours</h3>
+        <div className="palettes">
+          {PALETTES.map((option) => (
+            <button
+              key={option.id}
+              className={`palette${palette === option.id ? ' on' : ''}`}
+              onClick={() => onPalette(option.id)}
+              aria-pressed={palette === option.id}
+            >
+              <span className="palette-swatch" aria-hidden="true">
+                {option.swatch.map((colour) => (
+                  <i key={colour} style={{ background: colour }} />
+                ))}
+              </span>
+              <span className="palette-text">
+                <b>{option.name}</b>
+                <small>{option.note}</small>
+              </span>
+            </button>
+          ))}
+        </div>
+
         <label className={`toggle-row${hapticNote ? ' disabled' : ''}`}>
           <span>
             Haptics
@@ -649,11 +696,9 @@ function SettingsSheet({
 function Dock({
   ruleset,
   state,
-  nextSlotId,
 }: {
   ruleset: Ruleset
   state: DraftState
-  nextSlotId?: string
 }) {
   return (
     <div className="dock">
@@ -664,7 +709,7 @@ function Dock({
         return (
           <div
             key={slot.id}
-            className={`dock-slot${player ? ' filled' : ''}${slot.id === nextSlotId ? ' next' : ''}`}
+            className={`dock-slot${player ? ' filled' : ''}`}
             title={player ? `${slot.label}: ${player.name}` : slot.label}
           >
             <span className="dock-pos">{slot.id}</span>

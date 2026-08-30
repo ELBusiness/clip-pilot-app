@@ -20,35 +20,133 @@
  * but every colour, including the page ground, is painted explicitly so the
  * page holds on any host background.
  */
-:root {
+/*
+ * PERFECT SEASON — palettes
+ *
+ * Four complete palettes, each defining every token. The game is a scoreboard
+ * at a ballpark, so the schemes are places rather than moods: a night game, an
+ * afternoon one, and two neutrals for anyone who wants the numbers to carry the
+ * page instead of the colour.
+ *
+ * Every token is redefined in full by each palette rather than patched, so no
+ * colour can survive from the previous scheme and leave one surface reading
+ * against another's ground.
+ */
+:root,
+:root[data-palette='night'] {
   color-scheme: dark;
 
-  /* Painted steel, in shadow and in light. */
-  --ink: #0b1410;
-  --panel: #12201a;
-  --panel-hi: #17291f;
-  --rule: #26382c;
-  --rule-hi: #37503d;
+  /* NIGHT GAME — painted steel under the lights. */
+  --ink: #101b16;
+  --panel: #18271f;
+  --panel-hi: #1e3127;
+  --inset: #0c1712;
+  --rule: #2c4033;
+  --rule-hi: #3f5a48;
 
-  /* Chalk on the board; the foul line; the numbers. */
-  --chalk: #f2ede0;
-  --chalk-dim: #a9b3a4;
-  --chalk-faint: #6f7d70;
+  --chalk: #f4efe3;
+  --chalk-dim: #bcc6b8;
+  --chalk-faint: #a3b09f;
 
-  /* The bulb above the board. Everything bold on this page is this colour. */
   --bulb: #ffb627;
   --bulb-ink: #241a04;
-  --bulb-glow: rgba(255, 182, 39, 0.22);
+  --bulb-glow: rgba(255, 182, 39, 0.24);
 
-  /* The field itself, used where the field is actually drawn. */
-  --grass: #1e5b37;
-  --clay: #a85c3a;
+  --grass: #2f7a4a;
+  --clay: #b06a44;
+  --field-line: rgba(244, 239, 227, 0.34);
 
-  /* Semantic, kept away from the accent so state never reads as emphasis. */
-  --safe: #4fb477;
-  --out: #d2483f;
-  --tie: #8a9488;
+  --safe: #5ec489;
+  --out: #e05c50;
+  --tie: #93a094;
+}
 
+:root[data-palette='day'] {
+  color-scheme: light;
+
+  /* DAY GAME — a paper scorecard in the sun. */
+  --ink: #f3efe4;
+  --panel: #fbf8f0;
+  --panel-hi: #ffffff;
+  --inset: #ece6d8;
+  --rule: #d9d1bf;
+  --rule-hi: #b9ae97;
+
+  --chalk: #1d2620;
+  --chalk-dim: #4d5a50;
+  --chalk-faint: #5a6553;
+
+  /* On paper the accent has to hold its own against white, so it deepens. */
+  --bulb: #9c5514;
+  --bulb-ink: #fffaf0;
+  --bulb-glow: rgba(156, 85, 20, 0.16);
+
+  --grass: #4a8f5c;
+  --clay: #c08356;
+  --field-line: rgba(29, 38, 32, 0.3);
+
+  --safe: #2f7d4f;
+  --out: #b23b31;
+  --tie: #7b8579;
+}
+
+:root[data-palette='clay'] {
+  color-scheme: dark;
+
+  /* WARM NEUTRAL — infield dirt at dusk, no green at all. */
+  --ink: #191512;
+  --panel: #241e19;
+  --panel-hi: #2c251f;
+  --inset: #141110;
+  --rule: #3b322a;
+  --rule-hi: #57493d;
+
+  --chalk: #f1e9df;
+  --chalk-dim: #c2b6a8;
+  --chalk-faint: #a49685;
+
+  --bulb: #e08a3c;
+  --bulb-ink: #201202;
+  --bulb-glow: rgba(224, 138, 60, 0.22);
+
+  --grass: #6b7f4e;
+  --clay: #a9683f;
+  --field-line: rgba(241, 233, 223, 0.32);
+
+  --safe: #86b062;
+  --out: #d4614b;
+  --tie: #9a8e80;
+}
+
+:root[data-palette='slate'] {
+  color-scheme: dark;
+
+  /* COOL NEUTRAL — the numbers carry the page; colour stays out of the way. */
+  --ink: #14181d;
+  --panel: #1d2229;
+  --panel-hi: #242b33;
+  --inset: #10141a;
+  --rule: #313944;
+  --rule-hi: #47515e;
+
+  --chalk: #eef1f5;
+  --chalk-dim: #b6bec9;
+  --chalk-faint: #9aa4b1;
+
+  --bulb: #7fb3ff;
+  --bulb-ink: #0a1626;
+  --bulb-glow: rgba(127, 179, 255, 0.2);
+
+  --grass: #46707f;
+  --clay: #8a7a6a;
+  --field-line: rgba(238, 241, 245, 0.3);
+
+  --safe: #5fc0a0;
+  --out: #e2706b;
+  --tie: #8b95a1;
+}
+
+:root {
   --radius: 10px;
   --radius-lg: 14px;
 
@@ -56,8 +154,6 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
-  /* Big Shoulders for anything that behaves like painted signage, Plex Sans
-     for prose, Plex Mono for every number that has to line up. */
   --font-display: 'Big Shoulders Display', 'Haettenschweiler', 'Arial Narrow', sans-serif;
   --font: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-num: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
@@ -81,10 +177,10 @@ body {
 
 body {
   min-height: 100dvh;
-  /* Stadium lights above and behind the board. */
+  /* Lights above and behind the board, tinted by whichever palette is on. */
   background-image:
-    radial-gradient(120% 60% at 50% -8%, rgba(255, 182, 39, 0.08) 0%, transparent 60%),
-    radial-gradient(100% 70% at 50% 4%, #16261d 0%, var(--ink) 58%);
+    radial-gradient(120% 60% at 50% -8%, var(--bulb-glow) 0%, transparent 58%),
+    radial-gradient(100% 70% at 50% 4%, var(--panel) 0%, var(--ink) 60%);
   background-attachment: fixed;
 }
 
@@ -313,7 +409,7 @@ button {
 .sheet-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(4, 5, 8, 0.72);
+  background: color-mix(in srgb, var(--ink) 78%, transparent);
   backdrop-filter: blur(3px);
   z-index: 60;
   display: flex;
@@ -353,6 +449,66 @@ button {
   color: var(--chalk-dim);
   font-size: 14px;
   line-height: 1.6;
+}
+
+/* Each option shows its own ground, field, and accent, so the choice is made
+   from the colours themselves rather than from their names. */
+.palettes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+
+.palette {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  text-align: left;
+  min-width: 0;
+}
+
+.palette.on {
+  border-color: var(--bulb);
+  box-shadow: 0 0 0 1px var(--bulb);
+}
+
+.palette-swatch {
+  display: flex;
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid var(--rule-hi);
+}
+
+.palette-swatch i {
+  width: 9px;
+  height: 26px;
+}
+
+.palette-text {
+  min-width: 0;
+}
+
+.palette-text b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.palette-text small {
+  display: block;
+  font-size: 10.5px;
+  color: var(--chalk-faint);
+  line-height: 1.3;
+  margin-top: 1px;
 }
 
 /* The native checkbox stays in the DOM for keyboard and screen readers; the
@@ -454,13 +610,13 @@ button {
   text-align: center;
   /* A window cut into the board: darker than the panel, lit from inside. */
   background:
-    radial-gradient(120% 80% at 50% 0%, rgba(255, 182, 39, 0.12), transparent 62%),
-    #0a120e;
+    radial-gradient(120% 80% at 50% 0%, var(--bulb-glow), transparent 62%),
+    var(--inset);
   border: 1px solid var(--rule-hi);
   box-shadow:
-    inset 0 1px 0 rgba(242, 237, 224, 0.06),
-    inset 0 -14px 22px -18px #000,
-    0 1px 0 rgba(242, 237, 224, 0.04);
+    inset 0 1px 0 color-mix(in srgb, var(--chalk) 7%, transparent),
+    inset 0 -14px 22px -18px color-mix(in srgb, var(--ink) 90%, black),
+    0 1px 0 color-mix(in srgb, var(--chalk) 5%, transparent);
   overflow: hidden;
   min-height: 86px;
   display: flex;
@@ -559,7 +715,7 @@ button {
   aspect-ratio: 1 / 0.92;
   border-radius: 4px;
   overflow: hidden;
-  background: linear-gradient(180deg, #0e1c15 0%, #0a1410 72%, #08110d 100%);
+  background: linear-gradient(180deg, var(--panel) 0%, var(--inset) 74%, var(--ink) 100%);
   border: 1px solid var(--rule);
 }
 
@@ -584,7 +740,7 @@ button {
 /* Chalk, so the lines read as lime rather than as a UI border. */
 .fl-line {
   fill: none;
-  stroke: color-mix(in srgb, var(--chalk) 30%, transparent);
+  stroke: var(--field-line);
   stroke-width: 0.7;
 }
 
@@ -596,7 +752,7 @@ button {
   padding: 4px 6px 5px;
   border-radius: 3px;
   border: 1px dashed var(--rule-hi);
-  background: rgba(8, 17, 13, 0.78);
+  background: color-mix(in srgb, var(--inset) 82%, transparent);
   backdrop-filter: blur(2px);
   text-align: center;
   line-height: 1.1;
@@ -605,13 +761,13 @@ button {
 .spot.filled {
   border-style: solid;
   border-color: var(--rule-hi);
-  background: rgba(16, 20, 28, 0.93);
+  background: color-mix(in srgb, var(--panel-hi) 94%, transparent);
 }
 
 .spot.next {
   border-color: var(--bulb);
   border-style: solid;
-  box-shadow: 0 0 0 2px rgba(245, 197, 24, 0.22);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--bulb) 28%, transparent);
 }
 
 .spot-pos {
@@ -905,7 +1061,7 @@ button {
 }
 
 .pill.team {
-  border-color: rgba(255, 182, 39, 0.45);
+  border-color: color-mix(in srgb, var(--bulb) 50%, transparent);
   color: var(--bulb);
   min-width: 0;
 }
@@ -1034,7 +1190,7 @@ button {
   font-weight: 800;
   letter-spacing: 0.04em;
   color: var(--bulb);
-  border: 1px solid rgba(255, 182, 39, 0.28);
+  border: 1px solid color-mix(in srgb, var(--bulb) 34%, transparent);
   border-radius: 3px;
   padding: 3px 5px 2px;
   min-width: 34px;
@@ -1125,7 +1281,7 @@ button {
 }
 
 .cand-rating.good {
-  color: #9fe08a;
+  color: color-mix(in srgb, var(--safe) 72%, var(--chalk));
 }
 
 .cand-rating.ok {
@@ -1235,9 +1391,10 @@ button {
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  background: linear-gradient(180deg, #ffc851, var(--bulb));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bulb) 82%, white), var(--bulb));
   color: var(--bulb-ink);
-  box-shadow: 0 0 0 1px rgba(255, 182, 39, 0.35), 0 10px 30px -14px var(--bulb);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bulb) 45%, transparent),
+    0 10px 30px -14px var(--bulb);
   transition: transform 0.1s ease, opacity 0.15s ease;
 }
 

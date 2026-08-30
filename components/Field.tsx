@@ -34,12 +34,17 @@ const SPOTS: Record<string, { x: number; y: number }> = {
 export default function Field({
   ruleset,
   state,
-  nextSlotId,
+  eligibleSlotIds,
   onSlotTap,
 }: {
   ruleset: Ruleset
   state: DraftState
-  nextSlotId?: string
+  /**
+   * Slots to mark as available for the player being placed. Left undefined
+   * during normal play: any open position can be filled at any time, so
+   * highlighting one would imply a turn order the game does not have.
+   */
+  eligibleSlotIds?: string[]
   onSlotTap?: (slotId: string) => void
 }) {
   const fielders = ruleset.slots.filter((slot) => SPOTS[slot.id])
@@ -64,7 +69,7 @@ export default function Field({
             <button
               key={slot.id}
               type="button"
-              className={`spot${player ? ' filled' : ''}${slot.id === nextSlotId ? ' next' : ''}`}
+              className={`spot${player ? ' filled' : ''}${eligibleSlotIds?.includes(slot.id) ? ' next' : ''}`}
               style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
               onClick={() => onSlotTap?.(slot.id)}
               title={player ? `${slot.label}: ${player.name}` : slot.label}
@@ -88,12 +93,14 @@ export default function Field({
             <button
               key={slot.id}
               type="button"
-              className={`bench-slot${player ? ' filled' : ''}${slot.id === nextSlotId ? ' next' : ''}`}
+              className={`bench-slot${player ? ' filled' : ''}${eligibleSlotIds?.includes(slot.id) ? ' next' : ''}`}
               onClick={() => onSlotTap?.(slot.id)}
               title={player ? `${slot.label}: ${player.name}` : slot.label}
             >
               <span className="bench-pos">{slot.id}</span>
-              <span className="bench-name">{player ? lastName(player.name) : '\u2014'}</span>
+              {/* Empty slots show only the position and a single dash; the
+                  rating line below already carries one. */}
+              <span className="bench-name">{player ? lastName(player.name) : ''}</span>
               <span className={`bench-rating num${rating ? '' : ' empty'}`}>
                 {rating ? rating.score : '—'}
               </span>
