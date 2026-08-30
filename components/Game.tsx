@@ -371,6 +371,12 @@ export default function Game() {
     [ruleset, shownTeamId, shownEraId],
   )
 
+  /** Slots the selected player could fill. Empty when nobody is selected. */
+  const pendingSlots = useMemo(
+    () => (pending && state ? slotsForPlayer(ruleset, state, pending) : []),
+    [ruleset, state, pending],
+  )
+
   const candidates = useMemo(() => {
     if (!state?.spin || spinning) return []
     // Best player first. Baseball stat lines are unreadable to a newcomer —
@@ -479,27 +485,6 @@ export default function Game() {
           <Field ruleset={ruleset} state={state} />
           <div className="spacer" />
         </>
-      ) : pending ? (
-        <>
-          <p className="pick-prompt">Where does {pending.name} play?</p>
-          <div className="slot-row">
-            {slotsForPlayer(ruleset, state, pending).map((slot) => (
-              <button key={slot.id} className="slot-chip" onClick={() => choose(pending, slot.id)}>
-                {slot.label}
-              </button>
-            ))}
-            <button className="slot-chip" onClick={() => setPending(null)}>
-              Cancel
-            </button>
-          </div>
-          {/* Here a highlight is real: these are the slots this player can take. */}
-          <Field
-            ruleset={ruleset}
-            state={state}
-            eligibleSlotIds={slotsForPlayer(ruleset, state, pending).map((s) => s.id)}
-          />
-          <div className="spacer" />
-        </>
       ) : (
         <>
           <div className="pick-head">
@@ -535,15 +520,31 @@ export default function Game() {
             />
           </div>
 
-          <Dock ruleset={ruleset} state={state} />
+          <Dock
+            ruleset={ruleset}
+            state={state}
+            eligibleSlotIds={pendingSlots.map((slot) => slot.id)}
+            onSlotTap={(slotId) => pending && choose(pending, slotId)}
+          />
 
-          <p className="pick-prompt">
-            {candidates.length} available · best first
+          <p className={`pick-prompt${pending ? ' placing' : ''}`}>
+            {pending
+              ? `Tap a position for ${pending.name}`
+              : `${candidates.length} available · best first`}
+            {pending && (
+              <button className="cancel-pick" onClick={() => setPending(null)}>
+                Cancel
+              </button>
+            )}
           </p>
 
           <div className="candidates">
             {candidates.map(({ player, rating }) => (
-              <button key={player.id} className="cand" onClick={() => choose(player)}>
+              <button
+                key={player.id}
+                className={`cand${pending?.id === player.id ? ' selected' : ''}`}
+                onClick={() => choose(player)}
+              >
                 <span className="cand-pos">{player.positions.join('/')}</span>
                 <span className="cand-body">
                   <span className="cand-name">{player.name}</span>
@@ -696,25 +697,35 @@ function SettingsSheet({
 function Dock({
   ruleset,
   state,
+  eligibleSlotIds,
+  onSlotTap,
 }: {
   ruleset: Ruleset
   state: DraftState
+  /** Slots the player being placed can take. Empty when nobody is selected. */
+  eligibleSlotIds: string[]
+  onSlotTap: (slotId: string) => void
 }) {
+  const placing = eligibleSlotIds.length > 0
   return (
-    <div className="dock">
+    <div className={`dock${placing ? ' placing' : ''}`}>
       {ruleset.slots.map((slot) => {
         const pick = state.picks.find((p) => p.slotId === slot.id)
         const player = pick && ruleset.players.find((p) => p.id === pick.playerId)
         const rating = player ? playerRating(player) : null
+        const eligible = eligibleSlotIds.includes(slot.id)
         return (
-          <div
+          <button
             key={slot.id}
-            className={`dock-slot${player ? ' filled' : ''}`}
+            type="button"
+            className={`dock-slot${player ? ' filled' : ''}${eligible ? ' open' : ''}`}
             title={player ? `${slot.label}: ${player.name}` : slot.label}
+            disabled={!eligible}
+            onClick={() => onSlotTap(slot.id)}
           >
             <span className="dock-pos">{slot.id}</span>
             <span className="dock-rating num">{rating ? rating.score : '\u2014'}</span>
-          </div>
+          </button>
         )
       })}
     </div>

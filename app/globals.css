@@ -1009,8 +1009,58 @@ button {
   border-color: var(--rule-hi);
 }
 
-.dock-slot.next {
+/* While a player is waiting to be placed, the positions he can take become
+   the target — lit, tappable, and everything else dimmed out of the way. */
+.dock.placing .dock-slot {
+  opacity: 0.3;
+}
+
+.dock.placing .dock-slot.open {
+  opacity: 1;
   border-color: var(--bulb);
+  background: color-mix(in srgb, var(--bulb) 15%, var(--panel-hi));
+  animation: dock-pulse 1.5s ease-in-out infinite;
+}
+
+.dock.placing .dock-slot.open .dock-pos,
+.dock.placing .dock-slot.open .dock-rating {
+  color: var(--bulb);
+}
+
+@keyframes dock-pulse {
+  50% {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--bulb) 30%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock.placing .dock-slot.open {
+    animation: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--bulb) 30%, transparent);
+  }
+}
+
+/* The row you tapped stays on screen and stays marked. */
+.cand.selected {
+  border-left-color: var(--bulb);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--bulb) 14%, var(--panel-hi)) 0%, var(--panel) 100%);
+}
+
+.pick-prompt.placing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--bulb);
+  font-weight: 600;
+}
+
+.cancel-pick {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--chalk-faint);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .dock-pos {
