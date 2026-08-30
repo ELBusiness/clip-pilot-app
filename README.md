@@ -165,6 +165,23 @@ roster as a baseball field.
   files would cost hundreds of kilobytes and a network round trip. Audio stays
   silent until the first tap, and Sounds and Haptics both have toggles, because
   a game that makes noise with no way to stop it gets closed.
+
+### Haptics only work at the top level
+
+The Vibration API reports nothing useful: `navigator.vibrate()` returns true on
+a laptop with no vibration motor, and Chrome calls `vibrate` an unrecognized
+permissions-policy feature, so neither the return value nor
+`featurePolicy.allowsFeature` can be trusted. Two things actually stop it, both
+silently:
+
+- **iPhone and iPad.** Safari has never shipped the Vibration API.
+- **Being embedded.** Chrome discards vibration inside a cross-origin frame, so
+  the game buzzes when opened in its own tab and does nothing in an embed. No
+  page can fix this from the inside — the parent has to grant it.
+
+Rather than leave a switch on that does nothing, the settings sheet detects
+both cases, disables the toggle, and says which one applies. Where haptics do
+work there is a Test button, because the only way to be sure is to feel it.
 - **A live projection** with the all-time 116-win mark drawn on the bar,
   updating on every pick. Empty slots project as league-average players, so it
   answers "if I stopped here, what would this team do?" That turns each pick

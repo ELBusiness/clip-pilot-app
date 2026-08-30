@@ -305,6 +305,27 @@ button {
   background: var(--accent-ink);
 }
 
+.toggle-row.disabled {
+  cursor: default;
+  align-items: flex-start;
+}
+
+.toggle-row.disabled .toggle {
+  opacity: 0.35;
+}
+
+/* The reason the switch is dead, said plainly under its label. */
+.toggle-note {
+  display: block;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--text-faint);
+  margin-top: 4px;
+  max-width: 30ch;
+}
+
 .toggle-row input:focus-visible + .toggle {
   outline: 2px solid var(--accent);
   outline-offset: 2px;

@@ -20,6 +20,8 @@ import { dailyKey, dailyNumber, dailySeed, dailyShareText, encodeRun, seedCode }
 import type { Combo, Player, Ruleset } from '@/engine/types'
 import {
   hapticsEnabled,
+  hapticsSupport,
+  type HapticsSupport,
   playLand,
   playPick,
   playReveal,
@@ -139,6 +141,7 @@ export default function Game() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [sound, setSound] = useState(true)
   const [haptics, setHaptics] = useState(true)
+  const [hapticSupport, setHapticSupport] = useState<HapticsSupport>('ok')
   const [dailyDone, setDailyDone] = useState<StoredDaily | null>(null)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
@@ -245,6 +248,7 @@ export default function Game() {
     setDailyDone(readDaily())
     setSound(soundEnabled())
     setHaptics(hapticsEnabled())
+    setHapticSupport(hapticsSupport())
     const url = new URL(window.location.href)
     if (url.searchParams.has('daily')) {
       start(dailySeed('baseball'), 'daily')
@@ -423,6 +427,7 @@ export default function Game() {
         <SettingsSheet
           sound={sound}
           haptics={haptics}
+          hapticSupport={hapticSupport}
           onSound={(on) => {
             setSound(on)
             setSoundEnabled(on)
@@ -557,16 +562,27 @@ export default function Game() {
 function SettingsSheet({
   sound,
   haptics,
+  hapticSupport,
   onSound,
   onHaptics,
   onClose,
 }: {
   sound: boolean
   haptics: boolean
+  hapticSupport: HapticsSupport
   onSound: (on: boolean) => void
   onHaptics: (on: boolean) => void
   onClose: () => void
 }) {
+  // Say why the switch is dead rather than leaving it on and inert. "Haptics
+  // stopped working" is almost always one of these two, and neither is
+  // something the page can fix from inside.
+  const hapticNote =
+    hapticSupport === 'unsupported'
+      ? 'This browser has no vibration support — iPhone and iPad never shipped it.'
+      : hapticSupport === 'embedded'
+        ? 'Blocked because the game is embedded in another page. Open it in its own tab and it works.'
+        : null
   return (
     <div className="sheet-backdrop" onClick={onClose} role="presentation">
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
@@ -599,15 +615,29 @@ function SettingsSheet({
           <span className="toggle" aria-hidden="true" />
         </label>
 
-        <label className="toggle-row">
-          <span>Haptics</span>
+        <label className={`toggle-row${hapticNote ? ' disabled' : ''}`}>
+          <span>
+            Haptics
+            {hapticNote && <em className="toggle-note">{hapticNote}</em>}
+          </span>
           <input
             type="checkbox"
-            checked={haptics}
+            checked={haptics && !hapticNote}
+            disabled={!!hapticNote}
             onChange={(e) => onHaptics(e.target.checked)}
           />
           <span className="toggle" aria-hidden="true" />
         </label>
+
+        {!hapticNote && (
+          <button
+            className="btn ghost"
+            style={{ marginTop: 10 }}
+            onClick={() => vibrate([40, 60, 120])}
+          >
+            Test haptics
+          </button>
+        )}
       </div>
     </div>
   )

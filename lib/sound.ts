@@ -130,14 +130,45 @@ export function playReveal(): void {
 }
 
 /**
- * A short buzz. Android honours this; iOS Safari ignores it entirely, which is
- * why it accompanies sound rather than standing in for it.
+ * Why haptics may not fire, so the interface can say so instead of offering a
+ * switch that does nothing.
+ *
+ * The Vibration API gives no usable feedback: `navigator.vibrate()` returns
+ * true on a laptop with no vibration motor, and Chrome reports `vibrate` as an
+ * unrecognized permissions-policy feature, so neither the return value nor
+ * `featurePolicy.allowsFeature` can be trusted. The only reliable signals are
+ * whether the function exists at all and whether the page is embedded.
+ */
+export type HapticsSupport = 'ok' | 'unsupported' | 'embedded'
+
+export function hapticsSupport(): HapticsSupport {
+  if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') {
+    // Safari on iOS and iPadOS has never shipped the Vibration API.
+    return 'unsupported'
+  }
+  try {
+    // Chrome drops vibration in cross-origin frames without a word in the
+    // console, which is the usual reason haptics "stop working" on a page that
+    // is embedded rather than opened directly.
+    if (window.self !== window.top) return 'embedded'
+  } catch {
+    // Reading window.top across origins throws, which is itself the answer.
+    return 'embedded'
+  }
+  return 'ok'
+}
+
+/**
+ * A short buzz. Android honours this at the top level; iOS Safari has no
+ * Vibration API at all, and Chrome silently discards it inside a cross-origin
+ * frame — hence the support check, and hence sound carrying the feedback rather
+ * than haptics standing in for it.
  */
 export function vibrate(pattern: number | number[]): void {
-  if (!hapticsEnabled()) return
+  if (!hapticsEnabled() || hapticsSupport() !== 'ok') return
   try {
-    navigator.vibrate?.(pattern)
+    navigator.vibrate(pattern)
   } catch {
-    // Not supported; nothing to do.
+    // Nothing to do; the game does not depend on it.
   }
 }
