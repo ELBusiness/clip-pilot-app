@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { baseball } from '@/sports'
 import { playerRating, projectPartial } from '@/sports/baseball'
-import { franchiseNameFor } from '@/sports/baseball/players'
+import { eraLabelFor, franchiseNameFor } from '@/sports/baseball/players'
 import {
   candidatesFor,
   createDraft,
@@ -353,23 +353,10 @@ export default function Game() {
    * so "Seattle Mariners, 1960s-70s" reads like a bug even though the bucket
    * is correct.
    */
-  const eraLabel = useMemo(() => {
-    const era = ruleset.eras.find((e) => e.id === shownEraId)
-    if (!shownTeamId || !shownEraId || !era) return era?.label ?? ''
-    const years = ruleset.players
-      .filter((p) => p.franchiseId === shownTeamId && p.eraId === shownEraId)
-      .map((p) => p.year)
-    if (years.length === 0) return era.label
-    const first = Math.min(...years)
-    const last = Math.max(...years)
-    // Only narrow the label when the franchise really was absent for much of
-    // the era; otherwise the decade name reads better.
-    const span = era.endYear - era.startYear
-    if (first - era.startYear < span * 0.25 && era.endYear - last < span * 0.25) {
-      return era.label
-    }
-    return first === last ? `${first}` : `${first}-${last}`
-  }, [ruleset, shownTeamId, shownEraId])
+  const eraLabel = useMemo(
+    () => eraLabelFor(shownTeamId, ruleset.eras.find((e) => e.id === shownEraId)),
+    [ruleset, shownTeamId, shownEraId],
+  )
 
   const candidates = useMemo(() => {
     if (!state?.spin || spinning) return []

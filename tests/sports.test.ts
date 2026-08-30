@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import { baseball } from '../sports'
 import { baseRuns, normalizedBatting, normalizedEra, playerRating } from '../sports/baseball'
+import { eraLabelFor } from '../sports/baseball/players'
 
 /** The game ships as one sport; keep the loops so a second pack is a one-line change. */
 const SPORTS = [baseball]
@@ -356,5 +357,66 @@ test('the daily share card does not leak the roster', () => {
   // reason for the next person to open the game.
   for (const player of baseball.players.slice(0, 200)) {
     assert.ok(!text.includes(player.name), `share text leaked ${player.name}`)
+  }
+})
+
+test('eras are decades, and each one is stocked', () => {
+  const ids = baseball.eras.map((e) => e.id)
+  // 1900s through 2010s. There is no 2020s because the databank stops at the
+  // 60-game 2020 season, which is too small a sample to build cards from.
+  assert.deepEqual(ids, [
+    'e1900', 'e1910', 'e1920', 'e1930', 'e1940', 'e1950',
+    'e1960', 'e1970', 'e1980', 'e1990', 'e2000', 'e2010',
+  ])
+
+  for (const era of baseball.eras) {
+    // Exactly one decade wide (1900s starts at 1901, when the AL arrived).
+    assert.ok(era.endYear - era.startYear <= 9, `${era.id} spans more than a decade`)
+
+    const players = baseball.players.filter((p) => p.eraId === era.id)
+    assert.ok(players.length > 0, `${era.id} has no players`)
+
+    for (const player of players) {
+      // The eight Negro Leagues players are the one deliberate exception: they
+      // all sit in the 1920s, the heart of those leagues, even though their
+      // cards carry true seasons from 1919 to 1938. Splitting eight players
+      // across three decades would leave a spin offering one or two names, and
+      // changing the season printed on the card to match the bucket would mean
+      // falsifying a real record to satisfy a tidier rule.
+      if (player.franchiseId === 'NLG') continue
+
+      assert.ok(
+        player.year >= era.startYear && player.year <= era.endYear,
+        `${player.name} is dated ${player.year} but sits in ${era.id}`,
+      )
+    }
+  }
+})
+
+test('the reel labels a decade by when the club actually played', () => {
+  const nineties = baseball.eras.find((e) => e.id === 'e1990')!
+  const seventies = baseball.eras.find((e) => e.id === 'e1970')!
+
+  // A club that was there all decade gets the decade.
+  assert.equal(eraLabelFor('NYY', nineties), '1990s')
+
+  // One that arrived partway through gets the years it was there. The Mariners
+  // did not exist until 1977, and labelling that "1970s" is what made the reel
+  // look broken.
+  assert.equal(eraLabelFor('SEA', seventies), '1977-1979')
+
+  // Unknown franchise or era falls back rather than throwing.
+  assert.equal(eraLabelFor(undefined, nineties), '1990s')
+  assert.equal(eraLabelFor('NYY', undefined), '')
+})
+
+test('no franchise and decade pair is too thin to be worth a spin', () => {
+  const counts = new Map<string, number>()
+  for (const player of baseball.players) {
+    const key = `${player.franchiseId}:${player.eraId}`
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  for (const [key, n] of counts) {
+    assert.ok(n >= 5, `${key} offers only ${n} players`)
   }
 })

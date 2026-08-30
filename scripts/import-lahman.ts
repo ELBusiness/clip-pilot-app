@@ -36,13 +36,28 @@ const OUT = join(process.cwd(), 'sports', 'baseball', 'players.generated.ts')
  * stretch. Taking single seasons instead selects for career years — every card
  * becomes an outlier, and a roster of thirteen outliers wins 145 games.
  */
-const MIN_PA = 1200
-const MIN_IP = 350
-const MIN_RELIEF_IP = 150
+const MIN_PA = 900
+const MIN_IP = 280
+const MIN_RELIEF_IP = 110
+
+/**
+ * Floors for a decade the data only partly covers.
+ *
+ * The bar is "was this player a regular for this club in this decade", and a
+ * decade with two seasons in the database cannot demand the same plate
+ * appearances as one with ten. The 2020s is the live case: the databank stops
+ * in 2021, and one of its two seasons was the 60-game year, so a flat 900 PA
+ * left the decade completely empty.
+ */
+const FLOOR_PA = 350
+const FLOOR_IP = 120
+const FLOOR_RELIEF_IP = 45
 
 /**
  * Players kept per franchise/era/position, ranked by playing time rather than
- * by quality.
+ * by quality. Four rather than three, because a single decade is a narrower
+ * window than the multi-decade buckets this replaced and the reel still has to
+ * offer a real choice.
  *
  * This is the single most important line in the importer. Keeping the three
  * *best* players per slot builds a best-of compilation, so every spin offers
@@ -55,7 +70,7 @@ const MIN_RELIEF_IP = 150
  * The tension in this genre comes from spinning a team that has nothing you
  * need. That only exists if the data admits teams that had nothing.
  */
-const PER_BUCKET = 3
+const PER_BUCKET = 4
 
 type Row = Record<string, string>
 
@@ -107,15 +122,16 @@ const num = (v: string | undefined): number => {
   return Number.isFinite(n) ? n : 0
 }
 
-/** Era buckets, matching ERAS in players.ts. */
+/**
+ * One bucket per decade, matching ERAS in players.ts.
+ *
+ * 1901 is the start line because that is when the American League arrived and
+ * the modern two-league structure begins; everything before it belongs to a
+ * different sport with different rules.
+ */
 function eraFor(year: number): string | null {
-  if (year < 1901) return null
-  if (year <= 1939) return 'e20s'
-  if (year <= 1959) return 'e40s'
-  if (year <= 1979) return 'e60s'
-  if (year <= 1999) return 'e80s'
-  if (year <= 2009) return 'e00s'
-  return 'e10s'
+  if (year < 1901 || year > 2029) return null
+  return `e${Math.floor(year / 10) * 10}`
 }
 
 /**
@@ -174,17 +190,30 @@ function main(): void {
   // were Montreal Expos — and the Philadelphia Athletics, Brooklyn Dodgers, and
   // St. Louis Browns all vanish from a game whose whole appeal is history.
   const nameByYear = new Map<string, string>()
+  const franchiseYears = new Map<string, [number, number]>()
 
   for (const row of teams) {
     const raw = row['franchID'] ?? ''
     if (!raw) continue
     const id = FRANCHISE_RENAME[raw] ?? raw
     const year = num(row['yearID'])
+    const era = eraFor(year)
     franchiseOf.set(`${row['teamID']}:${year}`, id)
     seasonCount.set(id, (seasonCount.get(id) ?? 0) + 1)
     franchiseName.set(id, row['name'] ?? id)
 
     nameByYear.set(`${id}:${year}`, row['name'] ?? id)
+
+    // First and last season the club actually played in this decade. Used to
+    // label the reel: a franchise that existed all decade should say "1910s",
+    // and only one that arrived or folded mid-decade should show a year range.
+    if (era) {
+      const span = franchiseYears.get(`${id}:${era}`)
+      franchiseYears.set(
+        `${id}:${era}`,
+        span ? [Math.min(span[0], year), Math.max(span[1], year)] : [year, year],
+      )
+    }
   }
 
   // Keep the franchises a fan recognizes: the 30 with the longest histories.
@@ -320,10 +349,26 @@ function main(): void {
     agg.yearWeight += Math.max(1, games)
   }
 
+  // How much of each decade the database actually covers.
+  const seasonsPerEra = new Map<string, Set<number>>()
+  for (const row of teams) {
+    const era = eraFor(num(row['yearID']))
+    if (!era) continue
+    const set = seasonsPerEra.get(era) ?? new Set<number>()
+    set.add(num(row['yearID']))
+    seasonsPerEra.set(era, set)
+  }
+  const eraScale = (era: string) =>
+    Math.min(1, (seasonsPerEra.get(era)?.size ?? 10) / 10)
+
+  const paFloor = (era: string) => Math.max(FLOOR_PA, MIN_PA * eraScale(era))
+  const ipFloor = (era: string) => Math.max(FLOOR_IP, MIN_IP * eraScale(era))
+  const reliefFloor = (era: string) => Math.max(FLOOR_RELIEF_IP, MIN_RELIEF_IP * eraScale(era))
+
   const batters: Card[] = []
   for (const agg of batAgg.values()) {
     const pa = agg.ab + agg.bb + agg.hbp + agg.sf + agg.sh
-    if (pa < MIN_PA || agg.ab === 0) continue
+    if (pa < paFloor(agg.era) || agg.ab === 0) continue
 
     const singles = agg.h - agg.doubles - agg.triples - agg.hr
     const tb = singles + 2 * agg.doubles + 3 * agg.triples + 4 * agg.hr
@@ -401,7 +446,7 @@ function main(): void {
   for (const agg of pitAgg.values()) {
     const ip = agg.outs / 3
     const isReliever = agg.starts < agg.games / 2
-    if (ip < (isReliever ? MIN_RELIEF_IP : MIN_IP)) continue
+    if (ip < (isReliever ? reliefFloor(agg.era) : ipFloor(agg.era))) continue
 
     const eraValue = (agg.er * 9) / ip
     if (eraValue <= 0) continue
@@ -448,6 +493,28 @@ function main(): void {
     card.stats[5] = centered.toFixed(2)
   }
 
+  // Drop franchise/decade pairs too thin to be worth landing on. An expansion
+  // club's first partial decade might offer two players, and a reel that stops
+  // on a two-name list reads as the game being broken rather than as a hard
+  // spin.
+  const MIN_COMBO_PLAYERS = 8
+  const comboSize = new Map<string, number>()
+  for (const card of [...keptBatters, ...keptPitchers]) {
+    const key = `${card.franchise}:${card.era}`
+    comboSize.set(key, (comboSize.get(key) ?? 0) + 1)
+  }
+  const viable = (card: Card) =>
+    (comboSize.get(`${card.franchise}:${card.era}`) ?? 0) >= MIN_COMBO_PLAYERS
+
+  const droppedCombos = [...comboSize.values()].filter((n) => n < MIN_COMBO_PLAYERS).length
+  const batters2 = keptBatters.filter(viable)
+  const pitchers2 = keptPitchers.filter(viable)
+  keptBatters.length = 0
+  keptBatters.push(...batters2)
+  keptPitchers.length = 0
+  keptPitchers.push(...pitchers2)
+  console.log(`  dropped ${droppedCombos} franchise/decade pairs with fewer than ${MIN_COMBO_PLAYERS} players`)
+
   const usedFranchises = new Set(
     [...keptBatters, ...keptPitchers].map((c) => c.franchise),
   )
@@ -491,6 +558,12 @@ function main(): void {
 
   // Only emit a historical name where it differs from the modern one; the rest
   // is noise in the generated file.
+  const eraYearLines = [...franchiseYears.entries()]
+    .filter(([key]) => usedFranchises.has(key.split(':')[0] ?? ''))
+    .sort()
+    .map(([key, [from, to]]) => `  ${JSON.stringify(key)}: [${from}, ${to}],`)
+    .join('\n')
+
   const eraNameLines = [...eraNames.entries()]
     .filter(([key, name]) => {
       const id = key.split(':')[0] ?? ''
@@ -527,6 +600,15 @@ ${franchiseLines}
  */
 export const ERA_NAMES: Record<string, string> = {
 ${eraNameLines}
+}
+
+/**
+ * First and last season a franchise actually played in each decade, keyed
+ * \`franchise:era\`. The reel uses this to decide whether to say "1970s" or
+ * "1977-1979" — a club that was there all decade gets the decade.
+ */
+export const ERA_YEARS: Record<string, [number, number]> = {
+${eraYearLines}
 }
 
 const BATTERS = \`

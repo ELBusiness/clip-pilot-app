@@ -12,6 +12,11 @@
  * hand. Their figures follow the published Seamheads/Negro Leagues Database
  * numbers and are less complete than post-1920 AL/NL bookkeeping.
  *
+ * All of them sit in the 1920s bucket even where a card names a season either
+ * side of it. There are only eight, and splitting eight players across three
+ * decades would leave a spin offering one or two names — a thin spin reads as
+ * the game being broken rather than as a hard draw.
+ *
  * Columns: name | franchise | era | positions | year | AVG | OBP | SLG | HR | SB | DEF | HR/AB
  *
  * Negro Leagues rows carry DEF 0.00 — those leagues' fielding records are not
@@ -21,15 +26,27 @@
 
 import type { Franchise, Era } from '@/engine/types'
 import { parsePlayers } from '../parse'
-import { ERA_NAMES, GENERATED_FRANCHISES, GENERATED_PLAYERS } from './players.generated'
+import { ERA_NAMES, ERA_YEARS, GENERATED_FRANCHISES, GENERATED_PLAYERS } from './players.generated'
 
 export const ERAS: Era[] = [
-  { id: 'e20s', label: '1901-1939', startYear: 1901, endYear: 1939 },
-  { id: 'e40s', label: '1940s-50s', startYear: 1940, endYear: 1959 },
-  { id: 'e60s', label: '1960s-70s', startYear: 1960, endYear: 1979 },
-  { id: 'e80s', label: '1980s-90s', startYear: 1980, endYear: 1999 },
-  { id: 'e00s', label: '2000s', startYear: 2000, endYear: 2009 },
-  { id: 'e10s', label: '2010s-20s', startYear: 2010, endYear: 2025 },
+  { id: 'e1900', label: '1900s', startYear: 1901, endYear: 1909 },
+  { id: 'e1910', label: '1910s', startYear: 1910, endYear: 1919 },
+  { id: 'e1920', label: '1920s', startYear: 1920, endYear: 1929 },
+  { id: 'e1930', label: '1930s', startYear: 1930, endYear: 1939 },
+  { id: 'e1940', label: '1940s', startYear: 1940, endYear: 1949 },
+  { id: 'e1950', label: '1950s', startYear: 1950, endYear: 1959 },
+  { id: 'e1960', label: '1960s', startYear: 1960, endYear: 1969 },
+  { id: 'e1970', label: '1970s', startYear: 1970, endYear: 1979 },
+  { id: 'e1980', label: '1980s', startYear: 1980, endYear: 1989 },
+  { id: 'e1990', label: '1990s', startYear: 1990, endYear: 1999 },
+  { id: 'e2000', label: '2000s', startYear: 2000, endYear: 2009 },
+  { id: 'e2010', label: '2010s', startYear: 2010, endYear: 2019 },
+  // No 2020s. The open databank this pack is built from stops at 2020, and
+  // that lone season is the 60-game pandemic year — roughly 220 plate
+  // appearances for a regular, which is noise rather than a career. Drop a
+  // newer databank into data/lahman and re-run the importer and the decade
+  // fills itself; the era id is derived from the year, so only this line and
+  // the matching test need to come back.
 ]
 
 /**
@@ -63,20 +80,47 @@ export function franchiseShortFor(
   return full === franchise.name ? franchise.short : (full.split(' ').slice(-1)[0] ?? full)
 }
 
+/**
+ * How to label a decade for one franchise.
+ *
+ * A club that played the whole decade gets the decade: "1910s". One that
+ * arrived or folded partway through gets the years it was actually there:
+ * "1977-1979" for the Mariners' first seasons. This reads off the real
+ * schedule rather than the seasons of the players on offer — those cluster
+ * mid-decade, which made every label look like a partial range.
+ */
+export function eraLabelFor(
+  franchiseId: string | undefined,
+  era: Era | undefined,
+): string {
+  if (!era) return ''
+  if (!franchiseId) return era.label
+
+  const span = ERA_YEARS[`${franchiseId}:${era.id}`]
+  if (!span) return era.label
+
+  const [first, last] = span
+  const missing = first - era.startYear + (era.endYear - last)
+  // Two absent seasons is a rounding error; three means the club really was
+  // not there for much of the decade.
+  if (missing < 3) return era.label
+  return first === last ? `${first}` : `${first}-${last}`
+}
+
 export const FRANCHISES: Franchise[] = [
   ...GENERATED_FRANCHISES,
   { id: 'NLG', name: 'Negro Leagues', short: 'Negro Lgs', colors: ['#1b1b1b', '#c9a227'] },
 ]
 
 const NEGRO_LEAGUES = `
-Josh Gibson|NLG|e20s|C|1937|.372|.458|.718|165|22|0.00|0.0300
-Oscar Charleston|NLG|e20s|CF|1925|.363|.449|.614|143|206|0.00|0.0260
-Buck Leonard|NLG|e20s|1B|1938|.345|.437|.590|127|30|0.00|0.0231
-Turkey Stearnes|NLG|e20s|CF|1928|.348|.410|.616|186|128|0.00|0.0338
-Cool Papa Bell|NLG|e20s|CF|1929|.325|.395|.446|55|285|0.00|0.0100
-Mule Suttles|NLG|e20s|1B|1926|.329|.393|.615|179|61|0.00|0.0325
-Pop Lloyd|NLG|e20s|SS|1919|.343|.412|.451|33|175|0.00|0.0060
-Judy Johnson|NLG|e20s|3B|1929|.301|.362|.408|24|66|0.00|0.0044
+Josh Gibson|NLG|e1920|C|1937|.372|.458|.718|165|22|0.00|0.0300
+Oscar Charleston|NLG|e1920|CF|1925|.363|.449|.614|143|206|0.00|0.0260
+Buck Leonard|NLG|e1920|1B|1938|.345|.437|.590|127|30|0.00|0.0231
+Turkey Stearnes|NLG|e1920|CF|1928|.348|.410|.616|186|128|0.00|0.0338
+Cool Papa Bell|NLG|e1920|CF|1929|.325|.395|.446|55|285|0.00|0.0100
+Mule Suttles|NLG|e1920|1B|1926|.329|.393|.615|179|61|0.00|0.0325
+Pop Lloyd|NLG|e1920|SS|1919|.343|.412|.451|33|175|0.00|0.0060
+Judy Johnson|NLG|e1920|3B|1929|.301|.362|.408|24|66|0.00|0.0044
 `
 
 export const PLAYERS = [

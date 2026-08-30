@@ -181,6 +181,27 @@ thirteen-slot dock so nothing has to be remembered from the previous screen.
 - **Historical club names.** Brooklyn Dodgers, Philadelphia Athletics, St. Louis
   Browns, Montreal Expos — not the modern franchise that inherited them.
 
+## Eras
+
+The reel spins one decade at a time, 1900s through 2010s. Twelve buckets
+rather than the six wide ones this replaced, which is both truer to how fans
+argue ("the 70s Reds", not "the 1960s-70s Reds") and better for the draft: it
+splits long careers into the decades they actually happened in, so a spin
+offers 12.7 players on average and almost never fewer than three.
+
+Labels come from when a club really played, not from the seasons of the players
+on offer. A franchise that was around all decade gets the decade; one that
+arrived partway through gets the years it was there, so the Mariners read
+"1977-1979" rather than "1970s".
+
+There is no 2020s. The open databank stops at 2020 and that lone season is the
+60-game pandemic year — around 220 plate appearances for a regular, which is
+noise, not a career. Drop a newer databank into `data/lahman`, re-run the
+importer, and the decade fills itself: era ids are derived from the year.
+
+Playing-time floors scale with how much of a decade the data covers, so a
+partly-covered decade is not asked for a full decade's worth of at-bats.
+
 ## Design decisions that matter
 
 **A full roster, thirteen picks.** The nine in the batting order plus three
