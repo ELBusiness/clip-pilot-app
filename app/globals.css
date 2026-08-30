@@ -691,6 +691,26 @@ button {
   animation: reel-land 0.4s cubic-bezier(0.16, 1.25, 0.35, 1);
 }
 
+/* The spin lands on the club's colours. Applied only once it has stopped —
+   see the note in Game.tsx — so the reveal is the payoff and the cycling
+   never strobes saturated colour. */
+.reel-card.team.landed {
+  background: var(--team-bg, var(--inset));
+  border-color: color-mix(in srgb, var(--team-fg, var(--rule-hi)) 58%, var(--team-bg, var(--inset)));
+}
+
+.reel-card.team.landed .reel-value {
+  color: var(--team-fg, var(--chalk));
+}
+
+.reel-card.team.landed .reel-kicker {
+  color: var(--team-fg, var(--chalk-dim));
+}
+
+.reel-card.team.landed::before {
+  background: var(--team-fg, var(--bulb));
+}
+
 @keyframes reel-land {
   0% {
     transform: scale(0.96);
@@ -758,10 +778,26 @@ button {
   line-height: 1.1;
 }
 
+/*
+ * A drafted player wears his club's colours. --team-bg and --team-fg are set
+ * on the element by the component; the rim is derived from the pair, so a dark
+ * navy club still separates from the grass and a gold one from the dirt
+ * without either needing to know what palette the page is in.
+ */
 .spot.filled {
   border-style: solid;
-  border-color: var(--rule-hi);
-  background: color-mix(in srgb, var(--panel-hi) 94%, transparent);
+  border-color: color-mix(in srgb, var(--team-fg, var(--rule-hi)) 58%, var(--team-bg, var(--panel-hi)));
+  background: var(--team-bg, color-mix(in srgb, var(--panel-hi) 94%, transparent));
+  box-shadow: 0 1px 3px color-mix(in srgb, #000 34%, transparent);
+}
+
+.spot.filled .spot-pos {
+  color: var(--team-fg, var(--chalk-dim));
+}
+
+.spot.filled .spot-name,
+.spot.filled .spot-rating {
+  color: var(--team-fg, var(--chalk));
 }
 
 .spot.next {
@@ -779,9 +815,6 @@ button {
   color: var(--chalk-faint);
 }
 
-.spot.filled .spot-pos {
-  color: var(--bulb);
-}
 
 .spot-name {
   display: block;
@@ -817,9 +850,6 @@ button {
   margin-top: 8px;
 }
 
-.bench-slot .bench-name {
-  color: var(--chalk);
-}
 
 .bench-slot:not(.filled) .bench-name {
   color: var(--rule-hi);
@@ -836,7 +866,17 @@ button {
 
 .bench-slot.filled {
   border-style: solid;
-  background: var(--panel-hi);
+  border-color: color-mix(in srgb, var(--team-fg, var(--rule-hi)) 58%, var(--team-bg, var(--panel-hi)));
+  background: var(--team-bg, var(--panel-hi));
+}
+
+.bench-slot.filled .bench-pos {
+  color: var(--team-fg, var(--chalk-dim));
+}
+
+.bench-slot.filled .bench-name,
+.bench-slot.filled .bench-rating {
+  color: var(--team-fg, var(--chalk));
 }
 
 .bench-slot.next {
@@ -853,9 +893,6 @@ button {
   color: var(--chalk-faint);
 }
 
-.bench-slot.filled .bench-pos {
-  color: var(--bulb);
-}
 
 .bench-name {
   display: block;
@@ -1044,8 +1081,19 @@ button {
 }
 
 .dock-slot.filled {
-  background: var(--panel-hi);
-  border-color: var(--rule-hi);
+  background: var(--team-bg, var(--panel-hi));
+  border-color: color-mix(in srgb, var(--team-fg, var(--rule-hi)) 58%, var(--team-bg, var(--panel-hi)));
+}
+
+/* Thirteen cells across a phone, each in its club's colour: the strip reads as
+   a rack of jerseys, and which clubs a roster was assembled from is legible
+   without reading a single name. */
+.dock-slot.filled .dock-pos {
+  color: var(--team-fg, var(--chalk-dim));
+}
+
+.dock-slot.filled .dock-rating {
+  color: var(--team-fg, var(--safe));
 }
 
 /* While a player is waiting to be placed, the positions he can take become
@@ -1112,9 +1160,6 @@ button {
   line-height: 1;
 }
 
-.dock-slot.filled .dock-pos {
-  color: var(--bulb);
-}
 
 .dock-rating {
   display: block;
@@ -1158,9 +1203,13 @@ button {
   text-overflow: ellipsis;
 }
 
+/* The club you spun, in its own colours — the pick screen's header should say
+   which uniform these players are wearing before you read a single name. */
 .pill.team {
-  border-color: color-mix(in srgb, var(--bulb) 50%, transparent);
-  color: var(--bulb);
+  background: var(--team-bg, var(--panel));
+  border-color: color-mix(in srgb, var(--team-fg, var(--bulb)) 58%, var(--team-bg, var(--panel)));
+  color: var(--team-fg, var(--bulb));
+  font-weight: 700;
   min-width: 0;
 }
 
@@ -1282,13 +1331,17 @@ button {
   border-color: var(--bulb);
 }
 
+/* The badge is the club patch: solid team ground, the club's own second
+   colour on it wherever that pairing is legible. */
 .cand-pos {
   font-family: var(--font-display);
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.04em;
-  color: var(--bulb);
-  border: 1px solid color-mix(in srgb, var(--bulb) 34%, transparent);
+  color: var(--team-fg, var(--bulb));
+  background: var(--team-bg, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--team-fg, var(--bulb)) 34%, var(--team-bg, transparent));
   border-radius: 3px;
   padding: 3px 5px 2px;
   min-width: 34px;
@@ -1449,9 +1502,20 @@ button {
 .board-slot {
   padding: 7px 9px;
   border-radius: 9px;
-  background: var(--panel);
-  border: 1px solid var(--rule);
+  background: var(--team-bg, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--team-fg, var(--rule)) 58%, var(--team-bg, var(--panel)));
   min-width: 0;
+}
+
+/* On the result screen the roster is the souvenir, so it is fully painted:
+   thirteen clubs, thirteen colours, and the shape of the team you built. */
+.board-slot .board-name {
+  color: var(--team-fg, var(--chalk));
+}
+
+.board-slot .board-pos,
+.board-slot .board-team {
+  color: var(--team-fg, var(--chalk-dim));
 }
 
 /* The result screen has room to breathe; the draft board does not. */

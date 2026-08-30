@@ -253,6 +253,44 @@ incandescent bulbs, and the clay and grass of the field itself.
   card. Player rows are ticket stubs: torn square on the left, rounded on the
   right. Chalk hairlines separate zones instead of grey borders.
 
+### Club colours
+
+Thirteen picks come from thirteen different franchises, and a list of surnames
+does not show you that. So every drafted player wears his club's colours — on
+the field, in the position dock, on the reel when it lands, and on the roster
+that ends the run. The board becomes a team sheet you can read at a glance.
+
+The colours are the real ones and were already in the roster pack. What was
+missing is that **a club's own pairing is not always legible**. Nineteen of the
+thirty-one pair two dark colours — Seattle's navy on teal, Toronto's two blues,
+Detroit's navy and orange — and a badge in one on the other is a blur. So the
+pairing is measured, and a club whose own colours fail gets a legible ink
+instead. The primary always survives, because that is the colour the club is
+known by.
+
+| | |
+| --- | --- |
+| Keep their own pairing | 12 — Pittsburgh's gold on black, Oakland's gold on green, the Yankees' silver on navy |
+| Keep the primary, get a legible ink | 18 |
+| Ground moved as well | 1 — Phillies red, below |
+
+Phillies red sits at exactly the lightness where **both** neutrals fail: 4.1
+against charcoal and less against cream. Rather than ship a badge nobody can
+read, its ground is stepped until the ink clears, scaling the channels so the
+hue holds — still plainly Phillies red, just far enough along to be legible. A
+test asserts it is the only club this happens to, and that every one of the
+thirty-one clears 4.5:1.
+
+The chip rim is derived from the pair rather than from the page, so a navy club
+separates from the grass and a gold one from a cream background without either
+needing to know which palette is active. Measured in the browser: the faintest
+chip sits at 1.15 against the page ground, and its rim at 4.8.
+
+**The reel takes the colour only once it stops.** Painting it while it cycles
+would strobe saturated colour at roughly 20Hz, which is a photosensitivity
+hazard rather than a flourish. Landing on the colour also makes it the payoff
+of the spin.
+
 ### Four palettes
 
 The schemes are places rather than moods, and each defines every token in full
@@ -405,7 +443,7 @@ sports/
   baseball/          Era adjustment, BaseRuns, staff model, roster pack
 app/                 Next.js app; one route, the game
 components/          Game shell, draft board, season report
-lib/                 Sound and haptics, palettes, personal best
+lib/                 Sound and haptics, palettes, personal best, club colours
 standalone/          Entry for the single-file build
 scripts/             Lahman importer, standalone bundler
 tests/               Engine determinism, sim math, data integrity, difficulty

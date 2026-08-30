@@ -3,6 +3,7 @@
 import type { DraftState } from '@/engine/draft'
 import type { Ruleset } from '@/engine/types'
 import { playerRating } from '@/sports/baseball'
+import { teamStyle } from '@/lib/team-colors'
 
 /**
  * The roster as a baseball field.
@@ -55,7 +56,11 @@ export default function Field({
     const pick = state.picks.find((p) => p.slotId === slotId)
     const player = pick && ruleset.players.find((p) => p.id === pick.playerId)
     const rating = player ? playerRating(player) : null
-    return { slot, player, rating }
+    // A drafted player wears his club's colours. Thirteen picks come from
+    // thirteen different franchises, so this is what makes the board readable
+    // as a team sheet rather than a list of surnames.
+    const franchise = player && ruleset.franchises.find((f) => f.id === player.franchiseId)
+    return { slot, player, rating, team: player ? teamStyle(franchise) : {} }
   }
 
   return (
@@ -63,14 +68,14 @@ export default function Field({
       <div className="field">
         <FieldLines />
         {fielders.map((slot) => {
-          const { player, rating } = render(slot.id)
+          const { player, rating, team } = render(slot.id)
           const spot = SPOTS[slot.id]!
           return (
             <button
               key={slot.id}
               type="button"
               className={`spot${player ? ' filled' : ''}${eligibleSlotIds?.includes(slot.id) ? ' next' : ''}`}
-              style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
+              style={{ left: `${spot.x}%`, top: `${spot.y}%`, ...team }}
               onClick={() => onSlotTap?.(slot.id)}
               title={player ? `${slot.label}: ${player.name}` : slot.label}
             >
@@ -88,12 +93,13 @@ export default function Field({
 
       <div className="bench">
         {offField.map((slot) => {
-          const { player, rating } = render(slot.id)
+          const { player, rating, team } = render(slot.id)
           return (
             <button
               key={slot.id}
               type="button"
               className={`bench-slot${player ? ' filled' : ''}${eligibleSlotIds?.includes(slot.id) ? ' next' : ''}`}
+              style={team}
               onClick={() => onSlotTap?.(slot.id)}
               title={player ? `${slot.label}: ${player.name}` : slot.label}
             >

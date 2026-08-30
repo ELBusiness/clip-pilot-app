@@ -26,6 +26,7 @@ import {
 } from '@/engine/draft'
 import { runSeason, type RunResult } from '@/engine/run'
 import { loadBest, recordRun, type BestOutcome, type BestRun } from '@/lib/best'
+import { teamStyle } from '@/lib/team-colors'
 import { dailyKey, dailyNumber, dailySeed, dailyShareText, encodeRun, seedCode } from '@/engine/share'
 import type { Combo, Player, Ruleset } from '@/engine/types'
 import {
@@ -511,7 +512,14 @@ export default function Game() {
 
       {phase === 'spin' && (
       <div className="reels">
-        <div className={`reel-card team${teamSettled ? ' landed' : ' rolling'}`}>
+        {/* The club's colours arrive only once the reel stops. Applying them
+            while it cycles would strobe saturated colour at roughly 20Hz,
+            which is a photosensitivity hazard rather than a flourish — and
+            landing on the colour makes it the payoff of the spin. */}
+        <div
+          className={`reel-card team${teamSettled ? ' landed' : ' rolling'}`}
+          style={teamSettled ? teamStyle(franchise) : undefined}
+        >
           <span className="reel-kicker">Team</span>
           <span className="reel-value" key={shownTeamId ?? 'none'}>
             {franchise ? franchiseNameFor(franchise, shownEraId) : '—'}
@@ -542,7 +550,7 @@ export default function Game() {
       ) : (
         <>
           <div className="pick-head">
-            <span className="pill team">
+            <span className="pill team" style={teamStyle(franchise)}>
               {franchise ? franchiseNameFor(franchise, shownEraId) : '—'}
             </span>
             <span className="pill era">{eraLabel}</span>
@@ -600,7 +608,9 @@ export default function Game() {
                 className={`cand${pending?.id === player.id ? ' selected' : ''}`}
                 onClick={() => choose(player)}
               >
-                <span className="cand-pos">{player.positions.join('/')}</span>
+                <span className="cand-pos" style={teamStyle(franchise)}>
+                  {player.positions.join('/')}
+                </span>
                 <span className="cand-body">
                   <span className="cand-name">{player.name}</span>
                   {/* The scarcity flag leads, because it is the one line here
@@ -794,11 +804,13 @@ function Dock({
         const player = pick && ruleset.players.find((p) => p.id === pick.playerId)
         const rating = player ? playerRating(player) : null
         const eligible = eligibleSlotIds.includes(slot.id)
+        const franchise = player && ruleset.franchises.find((f) => f.id === player.franchiseId)
         return (
           <button
             key={slot.id}
             type="button"
             className={`dock-slot${player ? ' filled' : ''}${eligible ? ' open' : ''}`}
+            style={player ? teamStyle(franchise) : undefined}
             title={player ? `${slot.label}: ${player.name}` : slot.label}
             disabled={!eligible}
             onClick={() => onSlotTap(slot.id)}

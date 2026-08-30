@@ -5,6 +5,7 @@ import type { RunResult } from '@/engine/run'
 import type { Ruleset } from '@/engine/types'
 import { franchiseShortFor } from '@/sports/baseball/players'
 import { setAtLabel, type BestOutcome } from '@/lib/best'
+import { teamStyle } from '@/lib/team-colors'
 
 /**
  * The result screen carries the whole share loop, so it has to answer three
@@ -133,7 +134,7 @@ export default function SeasonReport({
         {roster.map(({ player, slot }) => {
           const franchise = ruleset.franchises.find((f) => f.id === player.franchiseId)
           return (
-            <div key={slot.id} className="board-slot">
+            <div key={slot.id} className="board-slot" style={teamStyle(franchise)}>
               <div className="board-pos">{slot.id}</div>
               <div className="board-name">{player.name}</div>
               <div className="board-team">

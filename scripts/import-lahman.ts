@@ -546,12 +546,37 @@ function main(): void {
       }
     }
   }
-  const franchiseLines = [...usedFranchises]
-    .sort()
+  const usedIds = [...usedFranchises].sort()
+
+  /**
+   * The club nickname, which is the full name with the city taken off. The
+   * last word alone is nearly right and wrong in the two places it matters:
+   * Boston and Chicago both come out "Sox", and the Angels' official "of
+   * Anaheim" makes their last word a city. So the suffix is dropped, and a
+   * nickname that collides with another club's takes the word before it too.
+   */
+  const shortNames = new Map<string, string>()
+  const lastWord = new Map<string, string>()
+  for (const id of usedIds) {
+    const full = (franchiseName.get(id) ?? id).replace(/ of [A-Z][a-z]+$/, '')
+    const words = full.split(' ')
+    const last = words[words.length - 1] ?? id
+    lastWord.set(id, last)
+    shortNames.set(id, last)
+  }
+  const collisions = new Set(
+    usedIds.filter((id) => usedIds.some((other) => other !== id && lastWord.get(other) === lastWord.get(id))),
+  )
+  for (const id of collisions) {
+    const full = (franchiseName.get(id) ?? id).replace(/ of [A-Z][a-z]+$/, '')
+    shortNames.set(id, full.split(' ').slice(-2).join(' '))
+  }
+
+  const franchiseLines = usedIds
     .map((id) => {
       const [c1, c2] = COLORS[id] ?? ['#3b4252', '#8d95a5']
       const full = franchiseName.get(id) ?? id
-      const short = full.split(' ').slice(-1)[0] ?? id
+      const short = shortNames.get(id) ?? id
       return `  { id: '${id}', name: ${JSON.stringify(full)}, short: ${JSON.stringify(short)}, colors: ['${c1}', '${c2}'] },`
     })
     .join('\n')

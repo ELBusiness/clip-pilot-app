@@ -14,6 +14,7 @@ import {
   scarcityEdge,
 } from '../sports/baseball'
 import { eraLabelFor } from '../sports/baseball/players'
+import { contrast, teamChip } from '../lib/team-colors'
 
 /** The game ships as one sport; keep the loops so a second pack is a one-line change. */
 const SPORTS = [baseball]
@@ -548,4 +549,52 @@ test('the residual slots confer no scarcity edge at all', () => {
   // And the guard is not just hiding a low median: the DH median is not the
   // lowest on the board, so a raw difference would have flagged it constantly.
   assert.ok(outlook.get('DH')!.typical > outlook.get('SS')!.typical)
+})
+
+test('every club badge is legible in its own colours', () => {
+  for (const franchise of baseball.franchises) {
+    const chip = teamChip(franchise)
+    assert.ok(chip, `${franchise.id} has no chip`)
+    assert.ok(
+      contrast(chip.fg, chip.bg) >= 4.5,
+      `${franchise.id} badge is ${contrast(chip.fg, chip.bg).toFixed(2)}:1 — under AA`,
+    )
+  }
+})
+
+test('a club keeps its own pairing where that pairing reads', () => {
+  const chip = (id: string) => teamChip(baseball.franchises.find((f) => f.id === id))!
+
+  // Pittsburgh's gold and black and Oakland's green and gold are legible as
+  // they are, so they are used untouched — the point is the real colours.
+  for (const id of ['PIT', 'OAK', 'NYY', 'MIL']) {
+    const franchise = baseball.franchises.find((f) => f.id === id)!
+    assert.equal(chip(id).authentic, true, `${id} should keep its own pairing`)
+    assert.equal(chip(id).bg, franchise.colors[0])
+    assert.equal(chip(id).fg, franchise.colors[1])
+  }
+
+  // Seattle pairs navy with teal and Toronto pairs two blues; neither reads,
+  // so the secondary is replaced rather than shipped as a blur. The primary
+  // survives in both cases — that is the colour identifying the club.
+  for (const id of ['SEA', 'TOR', 'DET']) {
+    const franchise = baseball.franchises.find((f) => f.id === id)!
+    assert.equal(chip(id).authentic, false, `${id} pairing should not have passed`)
+    assert.equal(chip(id).bg, franchise.colors[0], `${id} should keep its primary`)
+  }
+})
+
+test('a ground is only moved when no ink reads on it', () => {
+  // Phillies red sits at the lightness where cream and charcoal both fail, so
+  // it is the one club whose ground shifts. Everyone else keeps their exact
+  // hex, and the shift is small enough to still read as Phillies red.
+  const moved = baseball.franchises.filter(
+    (f) => teamChip(f)!.bg.toLowerCase() !== f.colors[0].toLowerCase(),
+  )
+  assert.deepEqual(moved.map((f) => f.id), ['PHI'])
+
+  const phi = teamChip(baseball.franchises.find((f) => f.id === 'PHI'))!
+  const red = parseInt(phi.bg.slice(1, 3), 16)
+  const green = parseInt(phi.bg.slice(3, 5), 16)
+  assert.ok(red > 200 && green < 110, `should still be red, got ${phi.bg}`)
 })
