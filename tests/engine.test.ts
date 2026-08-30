@@ -6,7 +6,9 @@ import { pythagoreanWinPct, pythagenpatExponent, simulateSeason } from '../engin
 import { decodeRun, encodeRun, seedCode, dailySeed } from '../engine/share'
 import { createDraft, spin, pick, candidatesFor, slotsForPlayer, eligibleCombos, openSlots, reroll } from '../engine/draft'
 import { runSeason } from '../engine/run'
-import { SPORTS } from '../sports'
+import { baseball } from '../sports'
+
+const SPORTS = [baseball]
 
 test('rng is deterministic for a given seed', () => {
   const a = createRng(12345)
@@ -134,7 +136,7 @@ test('the same seed replays to the same draft and the same season', () => {
 })
 
 test('re-simulating cannot be used to reroll a bad result', () => {
-  const ruleset = SPORTS[1]!
+  const ruleset = SPORTS[0]!
   let state = spin(ruleset, createDraft(ruleset, 555))
   let guard = 0
   while (state.status === 'picking' && guard++ < 40) {

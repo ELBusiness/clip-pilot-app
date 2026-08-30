@@ -1,16 +1,20 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
-import { SPORTS, SPORTS_BY_ID, bySlug } from '../sports'
+import { baseball } from '../sports'
+import { baseRuns, normalizedBatting, normalizedEra } from '../sports/baseball'
+
+/** The game ships as one sport; keep the loops so a second pack is a one-line change. */
+const SPORTS = [baseball]
 import { createDraft, spin, pick, candidatesFor, slotsForPlayer, eligibleCombos, openSlots } from '../engine/draft'
 import { runSeason } from '../engine/run'
 import { parsePlayers } from '../sports/parse'
 
-test('every sport is registered consistently', () => {
-  assert.equal(SPORTS.length, 4)
+test('the game is registered consistently', () => {
+  assert.equal(SPORTS.length, 1)
   for (const ruleset of SPORTS) {
-    assert.equal(SPORTS_BY_ID[ruleset.id], ruleset)
-    assert.equal(bySlug(ruleset.slug), ruleset)
+    assert.equal(ruleset.id, 'baseball')
+    assert.equal(ruleset.slug, '162-0')
     assert.ok(ruleset.slots.length > 0)
     assert.ok(ruleset.players.length > 0)
     assert.ok(ruleset.seasonGames > 0)
@@ -180,4 +184,72 @@ test('the table parser rejects malformed data rather than importing it silently'
   )
   // Comments and blank lines are skipped, not parsed.
   assert.equal(parsePlayers('# comment\n\nOk Name|T|e|P|1990|1|2', spec).length, 1)
+})
+
+test('era adjustment rebases a stat line into the modern run environment', () => {
+  // Walter Johnson's 2.17 came in a league that averaged about 2.75. Treating
+  // it as a modern 2.17 is what made deadball arms look superhuman.
+  const deadball = { ...baseball.players[0]!, year: 1913, stats: { era: 2.17 } }
+  const modern = { ...baseball.players[0]!, year: 2014, stats: { era: 2.17 } }
+
+  const adjustedDeadball = normalizedEra(deadball)
+  const adjustedModern = normalizedEra(modern)
+
+  assert.ok(adjustedDeadball > 3.0, `expected deadball 2.17 to deflate, got ${adjustedDeadball}`)
+  assert.ok(Math.abs(adjustedModern - 2.17) < 0.05, 'a 2010s line is already at the reference')
+  assert.ok(adjustedDeadball > adjustedModern)
+
+  // Hitters move the other way: 1960s offense was suppressed, so the same
+  // slash line was worth more than it looks.
+  const sixties = normalizedBatting({ ...baseball.players[0]!, year: 1968, stats: { avg: 0.3, obp: 0.37, slg: 0.5 } })
+  const modernBat = normalizedBatting({ ...baseball.players[0]!, year: 2015, stats: { avg: 0.3, obp: 0.37, slg: 0.5 } })
+  assert.ok(sixties.slg > modernBat.slg, 'a 1968 .500 SLG should adjust upward')
+})
+
+test('BaseRuns is calibrated to real baseball and cannot exceed its baserunners', () => {
+  // A league-average team should come out near the real 740 runs.
+  const average = baseRuns(0.25, 0.32, 0.405, 5500)
+  assert.ok(average > 690 && average < 790, `league average returned ${average}`)
+
+  // Monotonic in quality.
+  assert.ok(baseRuns(0.3, 0.38, 0.5, 5500) > average)
+  assert.ok(baseRuns(0.21, 0.27, 0.32, 5500) < average)
+
+  // The physical ceiling: runs can never exceed times-on-base. This is the
+  // property a linear estimator lacks and the reason a stacked lineup used to
+  // project past anything real.
+  for (const [avg, obp, slg] of [[0.4, 0.55, 0.9], [0.36, 0.5, 0.8], [0.34, 0.47, 0.69]] as const) {
+    const runs = baseRuns(avg, obp, slg, 5500)
+    const onBase = obp * 5500
+    assert.ok(runs < onBase, `runs ${runs} exceeded baserunners ${onBase}`)
+    assert.ok(Number.isFinite(runs) && runs > 0)
+  }
+})
+
+test('the difficulty curve leaves the real record worth chasing', () => {
+  // Beating 116 wins should be an achievement, not the default outcome. This
+  // guards the tuning: if a change makes a middling draft blow past the best
+  // season in history again, this fails.
+  let total = 0
+  let beatRecord = 0
+  const runs = 120
+
+  for (let seed = 1; seed <= runs; seed += 1) {
+    let state = spin(baseball, createDraft(baseball, seed))
+    let guard = 0
+    while (state.status === 'picking' && guard++ < 30) {
+      const candidates = candidatesFor(baseball, state, state.spin!)
+      if (!candidates.length) break
+      const player = candidates[Math.floor(candidates.length / 2)]!
+      state = pick(baseball, state, player.id, slotsForPlayer(baseball, state, player)[0]!.id)
+    }
+    const result = runSeason(baseball, state)
+    if (!result) continue
+    total += result.season.wins
+    if (result.season.wins > baseball.benchmark.wins) beatRecord += 1
+  }
+
+  const mean = total / runs
+  assert.ok(mean > 88 && mean < 110, `a middling draft should land in the 90s-low 100s, got ${mean.toFixed(1)}`)
+  assert.ok(beatRecord / runs < 0.25, `a middling draft beat the all-time record ${beatRecord}/${runs} times`)
 })

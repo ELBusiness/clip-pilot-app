@@ -1,93 +1,91 @@
-# Perfect Season
+# 162-0
 
-Multi-sport roster-draft games in the style of the viral **82-0**: spin for a
-franchise and an era, draft one legend at a time into every roster spot, then
-simulate a full season and find out how close you got to never losing a game.
+Draft nine legends. Play a season. Try not to lose a game.
 
-Four games ship today, all from one engine:
+A roster-draft game in the style of the viral **82-0**, built for baseball:
+spin for a franchise and an era, draft one player into each of the nine
+fielding positions, then simulate all 162 games and find out how close you got
+to a perfect season.
 
-| Game | Sport | Season | Roster | Real record to beat |
-|---|---|---|---|---|
-| `162-0` | Baseball (MLB) | 162 games | 11 | 116 wins — 1906 Cubs, 2001 Mariners |
-| `82-0` | Basketball (NBA) | 82 games | 5 | 73 wins — 2015-16 Warriors |
-| `17-0` | Football (NFL) | 17 games | 10 | 16-0 — 2007 Patriots |
-| `38-0` | Soccer (English top flight) | 38 games | 11 | 32 wins — 2017-18 Man City |
+**One sport, done properly.** 82-0 spawned copies within weeks — `17-0` and
+`20-0` for the NFL, at least six competing `38-0` sites for the Premier League,
+knockoff apps chasing the official 82-0 app on the stores. Spreading across
+four leagues means splitting the audience four ways and being second-best in
+every one of them. So this is an MLB game, and the way it wins is by being a
+better *baseball* game than the versions that treat the sport as a reskin.
 
-## The bet this repo is making
+## What makes it a better baseball game
 
-The obvious version of this project — clone 82-0 for another sport, ship fast —
-is mostly closed. Within weeks of 82-0 going viral there were `17-0` and `20-0`
-for the NFL, at least six competing `38-0` sites for the Premier League, a
-`162-0` for baseball, and three knockoff apps chasing the official 82-0 app on
-the stores. Being fourth to a reskin is not a business.
+Most versions of this genre add a roster's counting stats into a single
+"strength rating" and map that onto a record. That is fast to build and it
+feels arbitrary to play, because it is. Three things here are different, and
+all three are things a baseball fan will notice.
 
-So the architecture is the bet instead. Everything sport-specific lives behind
-a single `Ruleset` interface, which means a new sport is a data pack and a
-scoring function, not a new app. When the next league trends, the turnaround is
-a day. Two things follow from that:
+### 1. Stats are adjusted for the era they were put up in
 
-- **The engine is the asset**, not any one game.
-- **The simulation is the differentiator.** The incumbents mostly add a
-  roster's counting stats into a "strength rating" and map it onto a record.
-  That is fast to build and it feels arbitrary to play, because it is. This one
-  models each sport the way that sport is actually modelled.
+A 2.17 ERA in 1913 is not a 2.17 ERA today — the whole league sat near 2.75
+back then. Comparing raw numbers across a century makes deadball pitchers look
+superhuman and 1960s hitters look weak. Every stat is normalized against its own
+decade's league average before it is used, the same idea behind ERA+ and OPS+.
+Walter Johnson's 2.17 becomes an era-adjusted 3.20; Bob Gibson's 1968 season
+gains rather than loses.
 
-## How the simulation works
+### 2. Runs come from BaseRuns, not a strength rating
 
-Every sport reduces a roster to two numbers — expected points scored and
-allowed per game — and then plays the season one game at a time against
-opponents drawn from the league's quality distribution. Simulating game by game
-rather than mapping a rating straight onto a record matters: a great roster can
-still drop a game it should have won, which is the entire drama of chasing a
-perfect season.
+BaseRuns is the run estimator built for extreme teams. Its core term is a
+*rate* — the share of baserunners who come around to score — so it can never
+return more runs than the number of men who actually reached base. Stack nine
+sluggers and the offense compounds hard but stays inside physical reality.
+Linear estimators happily project past it.
 
-The record is then checked against **Pythagenpat** expectation, so the result
-screen can separate "this roster was good" from "these dice were kind."
+Calibration is checked against real baseball: a league-average lineup and a
+league-average ace returns 729 runs scored and 705 allowed, against a real MLB
+average near 740. That falls out of the formula rather than being tuned in, and
+a test fails if it drifts.
 
-Where the sports differ:
+### 3. Your ace does not pitch all 162 games
 
-**Baseball** uses Bill James' Runs Created identity, `RC = OBP × SLG × AB`,
-applied to the *lineup's aggregate rates* over a team-season of at-bats — not
-to nine players summed individually, which double-counts badly. Run prevention
-comes from staff ERA weighted by realistic innings shares, scaled for unearned
-runs. The model calibrates itself: a league-average lineup and a 4.00 ERA staff
-returns 762 runs scored, 697 allowed, and 88 expected wins, which is what an
-average MLB team actually does.
+A real ace throws about 15% of a team's innings. Letting the drafted pitcher's
+ERA stand in for the whole staff is the single biggest reason a roster of
+legends used to run away with the season. Here he anchors the staff at 25% and
+the rest of the rotation is league average — enough that the pick matters a
+lot, honest enough that it does not hand you a sub-3.00 team ERA for free.
 
-**Basketball** sums the five starters' production — legitimate here, since a
-lineup shares the same possessions — then compresses it against a league-average
-starting five with a fractional exponent to model usage saturation. Five
-30-point scorers cannot all take 30 shots.
+There is a fourth, smaller one that matters more than it sounds: **nobody plays
+162 games.** Real regulars start about 143 of them, so the drafted nine take 88%
+of the plate appearances and a replacement-level bench takes the rest.
 
-**Football** scores each player against a baseline for his own position, then
-combines them with real positional-value weights. Quarterback carries ~40% of
-offensive outcome alone. Linemen are graded on All-Pro selections and career
-starts, the only durable public record of line play.
+## Difficulty
 
-**Soccer** goes straight to Poisson, which is the settled model for goals per
-match, and treats draws as real outcomes — a perfect season means 38 wins, not
-38 unbeaten.
+The point of the game is that a perfect season is out of reach and the real
+record is not. With an honest model, 162-0 has odds around 1 in 20,000 even
+drafting optimally — that is a fact about baseball, and faking it would mean
+throwing away the model that makes the rest feel real.
 
-Calibration targets are real seasons, not vibes. Soccer's model returns ~2.7
-goals a game for an all-time front six (the 2017-18 champions scored 2.79) and
-~0.6 conceded for an all-time back line (the 2018-19 champions conceded 0.61).
+So every result is graded against **the best real season on record: 116 wins**,
+by the 1906 Cubs and 2001 Mariners. As tuned:
 
-### Why 162-0 is not actually reachable
+| How you play | Median wins | Beats 116 |
+|---|---|---|
+| Taking whoever | 102 | 6% |
+| Middling picks | 100 | 2% |
+| Drafting well | 107 | 17% |
 
-It is worth saying plainly: with an honest baseball model, a perfect 162-game
-season has odds around 1 in 20,000 even with optimal drafting. That is a fact
-about baseball, not a bug in the sim, and faking it would mean throwing away
-the model that makes the game feel real.
-
-So every result is also graded against **the best real season on record**. A
-129-33 means something — it beat the 2001 Mariners. Chasing 116 is a target
-players can actually hit, argue about, and share. The title stays `162-0`
-because that is what people search for; the scoreboard is honest underneath it.
-
-Basketball and football, with their shorter seasons, do produce genuine perfect
-runs — roughly 4% and 1% of optimally drafted rosters respectively.
+Beating the all-time record is a real achievement and a real brag. Going 162-0
+is the ghost you chase. A test guards this curve, so a future change that makes
+a middling draft blow past the record again fails CI rather than shipping.
 
 ## Design decisions that matter
+
+**Nine picks, one per position.** The roster is the nine fielding positions, 1
+through 9 on a scorecard — baseball's answer to 82-0's starting five. The whole
+team on the field, short enough to play in a couple of minutes.
+
+**Ordinary players in the pool.** A pool made only of legends means every spin
+is a good spin, which removes the entire tension of the draft. Alongside the
+Hall of Famers are real everyday regulars — some good, some genuinely poor bats
+kept in the lineup for their glove — so landing on a thin franchise/era actually
+costs you something.
 
 **No dead spins.** The genre's worst failure is landing on a franchise/era with
 nobody you can legally play; it reads as the game being broken rather than as a
@@ -112,8 +110,8 @@ hosting is free and a viral spike costs nothing.
 ## Project structure
 
 ```text
-engine/            Sport-agnostic core — no React, no sport knowledge
-  types.ts           The Ruleset contract every sport implements
+engine/            Game core — no React, no baseball knowledge
+  types.ts           The Ruleset contract the sport pack implements
   rng.ts             Seeded deterministic RNG (mulberry32, Poisson, normal)
   draft.ts           Spin/pick state machine, feasibility-aware reel
   season.ts          Game-by-game simulation, Pythagenpat expectation
@@ -121,33 +119,29 @@ engine/            Sport-agnostic core — no React, no sport knowledge
   share.ts           Share-code encode/decode, daily seeds
 sports/
   parse.ts           Pipe-delimited roster table parser
-  baseball/          162-0 — Runs Created + staff ERA  (flagship)
-  basketball/        82-0  — usage-compressed lineup production
-  football/          17-0  — position-weighted grading
-  soccer/            38-0  — Poisson goals, draws enabled
-app/                 Next.js routes; /[slug] renders each game
+  baseball/          Era adjustment, BaseRuns, staff model, roster pack
+app/                 Next.js app; one route, the game
 components/          Game shell, draft board, season report
-scripts/             Lahman database importer
-tests/               Engine determinism, sim math, data integrity
+standalone/          Entry for the single-file build
+scripts/             Lahman importer, standalone bundler
+tests/               Engine determinism, sim math, data integrity, difficulty
 ```
+
+The engine stays separate from the baseball pack behind a `Ruleset` interface.
+That is not a plan to add more sports — it is what keeps the simulation
+testable on its own and the run-scoring model swappable when the Lahman import
+replaces the seed data.
 
 ## Data and provenance
 
-Roster packs are hand-curated career lines for recognizable players — enough to
-make each game playable and balanced. Pre-2000 figures are the standard
+The roster pack is hand-curated career lines — Hall of Famers alongside ordinary
+regulars, so the draft has real downside. Pre-2000 figures are the standard
 published career numbers; players with recent or ongoing careers carry rounded
-approximations. Two packs carry explicit caveats in their file headers:
+approximations. Negro Leagues players are included following MLB's 2020
+recognition of those records, which are less complete than post-1920 AL/NL
+bookkeeping.
 
-- **Basketball**: steals and blocks were not official NBA statistics before
-  1973-74, so earlier lines use researcher estimates.
-- **Soccer**: attacking output is real (club goals, assists, appearances), but
-  defenders and goalkeepers have no equivalent public counting stat, so that
-  pack carries a labelled editorial strength grade. It is judgment, and it is
-  marked as judgment.
-- **Baseball** includes Negro Leagues players following MLB's 2020 recognition
-  of those records, which are less complete than post-1920 AL/NL bookkeeping.
-
-For exact, sourced, season-level baseball data, run the importer:
+For exact, sourced, season-level data, run the importer:
 
 ```bash
 # 1. Download the Lahman database (CC BY-SA 3.0, 1871-present):
@@ -165,39 +159,41 @@ generated file is gitignored rather than committed without that decision.
 
 ```bash
 npm install
-npm run dev          # http://localhost:3000
-npm test             # engine determinism, sim math, data integrity
+npm run dev              # http://localhost:3000
+npm test                 # determinism, sim math, data integrity, difficulty
 npm run typecheck
-npm run build        # static export of all four games
+npm run build            # static export
+npm run build:standalone # single self-contained HTML file
 ```
 
 Requires Node 22+.
 
-## Adding a sport
+## Tuning the game
 
-Implement `Ruleset` and register it. Concretely:
+The knobs that move difficulty all live at the top of `sports/baseball/index.ts`
+and every one of them is a real quantity, not a magic number:
 
-1. Create `sports/<name>/index.ts`.
-2. Define `slots`, `eras`, `franchises`, and a player table parsed by
-   `parsePlayers`.
-3. Write `rate(roster)` — reduce a roster to `{ offense, defense, factors }`.
-   The `factors` array is what the result screen explains the record with, so
-   make each one something a fan would argue about.
-4. Set `context` (league average, spread, `poisson` or `normal`) and
-   `benchmark` (the best real season).
-5. Add it to `SPORTS` in `sports/index.ts`.
+- `ACE_INNINGS_SHARE` — how much of the staff your drafted pitcher is
+- `STARTER_PA_SHARE` / `BENCH` — how much of the season the bench plays
+- `REF` and `leagueEnv()` — the reference run environment and the per-decade
+  league averages every stat is rebased against
 
-The route, draft loop, reel, share codes, and season report all come for free.
-`tests/sports.test.ts` will immediately check the new pack for unknown
-franchises, thin slots, dead spins, and implausible ratings.
+`tests/sports.test.ts` holds the difficulty curve in place. Change a knob, run
+`npm test`, and it tells you if a middling draft started beating the 2001
+Mariners again.
 
 ## Native apps
 
-The games are built web-first because that is where this genre spreads — a
-share link into a group chat is the whole growth loop, and an app-store-only
-version has no equivalent. The engine and sport packs are plain TypeScript with
-no DOM dependencies, so they lift into an Expo/React Native shell unchanged;
-only `components/` needs a native counterpart.
+The game is built web-first because that is where this genre spreads — a share
+link into a group chat is the whole growth loop, and an app-store-only version
+has no equivalent. The engine and roster pack are plain TypeScript with no DOM
+dependencies, so they lift into an Expo/React Native shell unchanged; only
+`components/` needs a native counterpart.
+
+`npm run build:standalone` also emits a single self-contained HTML file with
+React, the engine, the roster data, and the CSS inlined. It runs from a file://
+URL or any static host with no server and no network — useful for testing on a
+phone without a dev machine.
 
 ## Legal note
 

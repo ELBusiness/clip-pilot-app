@@ -24,7 +24,6 @@ const result = await build({
   jsx: 'automatic',
   write: false,
   define: { 'process.env.NODE_ENV': '"production"' },
-  alias: { 'next/link': join(root, 'standalone/next-link-shim.tsx') },
   // esbuild reads the '@/*' paths mapping straight from tsconfig, so module
   // resolution stays identical to the Next build.
   tsconfig: join(root, 'tsconfig.json'),
@@ -40,7 +39,7 @@ const html = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#08090c">
-<title>Perfect Season</title>
+<title>162-0</title>
 <style>${css}</style>
 </head>
 <body>
@@ -56,7 +55,7 @@ console.log(`Wrote ${target}  (${(Buffer.byteLength(html) / 1024).toFixed(0)} KB
 
 // Artifact hosts supply their own document skeleton, so that build ships the
 // page content only — same bundle, no wrapper tags.
-const fragment = `<title>Perfect Season</title>
+const fragment = `<title>162-0</title>
 <style>${css}</style>
 <div id="root"></div>
 <script>${js}</script>

@@ -1,8 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import BackLink from './BackLink'
-import { SPORTS_BY_ID } from '@/sports'
+import { baseball } from '@/sports'
 import {
   candidatesFor,
   createDraft,
@@ -16,15 +15,15 @@ import {
 } from '@/engine/draft'
 import { runSeason, type RunResult } from '@/engine/run'
 import { encodeRun, seedCode } from '@/engine/share'
-import type { Combo, Player, SportId } from '@/engine/types'
+import type { Combo, Player, Ruleset } from '@/engine/types'
 import SeasonReport from './SeasonReport'
 
 /** How long the reel cycles before it settles, in ms. */
 const SPIN_MS = 850
 const SPIN_TICK = 70
 
-export default function Game({ sportId, onBack }: { sportId: SportId; onBack?: () => void }) {
-  const ruleset = SPORTS_BY_ID[sportId]
+export default function Game() {
+  const ruleset = baseball
 
   const [state, setState] = useState<DraftState | null>(null)
   const [display, setDisplay] = useState<Combo | null>(null)
@@ -167,7 +166,6 @@ export default function Game({ sportId, onBack }: { sportId: SportId; onBack?: (
         shareCode={encodeRun(state)}
         onShare={share}
         onReplay={() => start((Math.random() * 0xffffffff) >>> 0)}
-        onBack={onBack}
         toast={toast}
       />
     )
@@ -180,7 +178,7 @@ export default function Game({ sportId, onBack }: { sportId: SportId; onBack?: (
   return (
     <main className="shell">
       <div className="topbar">
-        <BackLink onBack={onBack} />
+        <span className="round-pill">162-0 · MLB</span>
         <span className="round-pill">
           Pick {Math.min(filled + 1, total)} of {total}
         </span>
@@ -247,7 +245,7 @@ function RosterBoard({
   state,
   nextSlotId,
 }: {
-  ruleset: (typeof SPORTS_BY_ID)[SportId]
+  ruleset: Ruleset
   state: DraftState
   nextSlotId?: string
 }) {

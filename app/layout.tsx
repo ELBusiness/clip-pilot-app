@@ -2,11 +2,11 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Perfect Season — draft a team that never loses',
+  title: '162-0 — draft an MLB team that never loses',
   description:
-    'Spin for a franchise and an era, draft legends into every roster spot, and simulate a full season. Baseball, basketball, football, and soccer.',
-  applicationName: 'Perfect Season',
-  appleWebApp: { capable: true, title: 'Perfect Season', statusBarStyle: 'black-translucent' },
+    'Spin for a franchise and an era, draft one legend into each of the nine positions, and simulate all 162 games. Era-adjusted stats and a real run estimator.',
+  applicationName: '162-0',
+  appleWebApp: { capable: true, title: '162-0', statusBarStyle: 'black-translucent' },
 }
 
 export const viewport: Viewport = {

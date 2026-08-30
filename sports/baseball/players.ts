@@ -417,7 +417,130 @@ Josh Hader|MIL|e10s|RP|2021|2.50|25|700|0.95
 Liam Hendriks|CHW|e10s|RP|2021|3.50|30|750|1.15
 `
 
+
+const REGULARS = `
+# Ordinary regulars. A pool made only of legends means every spin is a good
+# spin, which removes the whole tension of the draft. These are real everyday
+# players — some good, some genuinely poor bats kept in the lineup for their
+# glove — so landing on a thin franchise/era actually costs you something.
+# ---- 1940s-50s ----
+Carl Furillo|LAD|e40s|RF|1953|.299|.355|.458|192|48
+Billy Cox|LAD|e40s|3B|1949|.262|.315|.357|66|43
+Andy Pafko|CHC|e40s|CF|1950|.285|.343|.449|213|38
+Bobby Thomson|SFG|e40s|CF|1951|.270|.332|.462|264|38
+Vern Stephens|BOS|e40s|SS|1949|.286|.355|.460|247|25
+Bobby Avila|CLE|e40s|2B|1954|.281|.359|.388|80|78
+Jim Hegan|CLE|e40s|C|1950|.228|.298|.344|92|15
+Del Ennis|PHI|e40s|LF|1950|.284|.340|.472|288|45
+Granny Hamner|PHI|e40s|SS|1952|.262|.303|.383|104|36
+Wally Moon|STL|e40s|LF|1957|.289|.371|.430|142|89
+# ---- 1960s-70s ----
+Mark Belanger|BAL|e60s|SS|1969|.228|.300|.280|20|167
+Larry Bowa|PHI|e60s|SS|1978|.260|.300|.320|15|318
+Dick Groat|PIT|e60s|SS|1960|.286|.330|.366|39|14
+Bob Boone|PHI|e60s|C|1979|.254|.315|.346|105|38
+Jim Sundberg|TEX|e60s|C|1977|.248|.327|.348|95|20
+Ray Fosse|CLE|e60s|C|1970|.256|.313|.343|61|17
+Amos Otis|KCR|e60s|CF|1973|.277|.343|.425|193|341
+Al Oliver|PIT|e60s|LF|1974|.303|.344|.451|219|84
+Jose Cruz|HOU|e60s|LF|1977|.284|.354|.420|165|317
+Bill Buckner|CHC|e60s|1B|1980|.289|.321|.408|174|183
+Manny Trillo|PHI|e60s|2B|1979|.263|.316|.345|61|54
+Tim Foli|MON|e60s|SS|1978|.251|.283|.309|25|84
+Chris Speier|SFG|e60s|SS|1972|.246|.320|.341|112|42
+Rick Reuschel|CHC|e60s|SP|1977|3.37|214|2015|1.26
+Frank Tanana|DET|e60s|SP|1976|3.66|240|2773|1.25
+Charlie Hough|TEX|e60s|SP|1987|3.75|216|2362|1.32
+Doyle Alexander|TOR|e60s|SP|1985|3.76|194|1528|1.29
+Bob Forsch|STL|e60s|SP|1977|3.76|168|1093|1.32
+Jerry Reuss|LAD|e60s|SP|1980|3.64|220|1907|1.29
+# ---- 1980s-90s ----
+Mark Lemke|ATL|e80s|2B|1993|.246|.316|.313|32|9
+Jose Lind|PIT|e80s|2B|1990|.254|.290|.316|9|49
+Rey Ordonez|NYM|e80s|SS|1999|.246|.289|.310|12|20
+Royce Clayton|SFG|e80s|SS|1997|.258|.312|.367|110|231
+Mike Scioscia|LAD|e80s|C|1985|.259|.344|.356|68|29
+Terry Steinbach|OAK|e80s|C|1996|.271|.326|.420|162|20
+Rick Dempsey|BAL|e80s|C|1983|.233|.319|.347|96|21
+Tony Pena|PIT|e80s|C|1983|.260|.309|.364|107|80
+Darren Lewis|SFG|e80s|CF|1993|.253|.318|.318|27|248
+Otis Nixon|ATL|e80s|CF|1992|.270|.343|.318|11|620
+Brett Butler|CLE|e80s|CF|1991|.290|.377|.376|54|558
+Devon White|TOR|e80s|CF|1993|.263|.319|.419|208|346
+Marquis Grissom|MON|e80s|CF|1992|.272|.318|.415|227|429
+Steve Finley|HOU|e80s|CF|1996|.271|.332|.442|304|320
+Wally Joyner|LAA|e80s|1B|1987|.289|.362|.440|204|65
+JT Snow|SFG|e80s|1B|1997|.268|.357|.427|189|38
+Travis Fryman|DET|e80s|3B|1993|.274|.336|.443|223|72
+Scott Brosius|NYY|e80s|3B|1998|.257|.323|.422|141|40
+Vinny Castilla|COL|e80s|3B|1998|.276|.321|.492|320|28
+Bret Boone|SEA|e80s|2B|2001|.266|.325|.442|252|118
+Ray Durham|CHW|e80s|2B|1998|.277|.352|.436|192|273
+Jamie Moyer|SEA|e80s|SP|2003|4.25|269|2441|1.32
+Kenny Rogers|TEX|e80s|SP|1995|4.27|219|1968|1.37
+Brad Radke|MIN|e80s|SP|1997|4.22|148|1467|1.25
+Mike Moore|OAK|e80s|SP|1989|4.39|161|1667|1.40
+Bobby Witt|TEX|e80s|SP|1990|4.83|142|1955|1.51
+Danny Darwin|HOU|e80s|SP|1990|3.84|171|1942|1.24
+Aaron Sele|BOS|e80s|SP|1998|4.61|148|1407|1.44
+# ---- 2000s ----
+Brad Ausmus|HOU|e00s|C|2004|.251|.325|.344|80|102
+AJ Pierzynski|CHW|e00s|C|2006|.280|.318|.420|188|17
+Bengie Molina|LAA|e00s|C|2007|.274|.311|.415|144|4
+Ramon Hernandez|BAL|e00s|C|2006|.264|.325|.421|167|13
+Jason Kendall|PIT|e00s|C|2000|.288|.366|.378|75|189
+Neifi Perez|COL|e00s|SS|2000|.267|.297|.372|64|76
+Cesar Izturis|LAD|e00s|SS|2004|.254|.291|.319|25|97
+Adam Everett|HOU|e00s|SS|2006|.248|.299|.351|38|55
+Juan Pierre|LAD|e00s|CF|2004|.295|.343|.361|18|614
+Placido Polanco|PHI|e00s|2B|2007|.297|.343|.397|104|89
+Luis Castillo|NYM|e00s|2B|2005|.290|.368|.351|28|370
+Mark Ellis|OAK|e00s|2B|2007|.262|.330|.397|101|75
+Sean Casey|CIN|e00s|1B|2004|.302|.367|.447|130|18
+Lyle Overbay|TOR|e00s|1B|2006|.266|.348|.442|151|13
+Doug Mientkiewicz|MIN|e00s|1B|2001|.271|.360|.391|66|17
+Joe Randa|KCR|e00s|3B|2000|.284|.339|.421|123|39
+Bill Mueller|BOS|e00s|3B|2003|.291|.373|.425|85|30
+Jeff Cirillo|MIL|e00s|3B|1999|.296|.366|.430|112|51
+Garret Anderson|LAA|e00s|LF|2003|.293|.324|.461|287|80
+Johnny Damon|BOS|e00s|CF|2004|.284|.352|.433|235|408
+Livan Hernandez|SFG|e00s|SP|2000|4.44|178|1976|1.44
+Jeff Suppan|STL|e00s|SP|2005|4.70|140|1264|1.44
+Jason Marquis|STL|e00s|SP|2004|4.63|124|1112|1.47
+Kyle Lohse|MIN|e00s|SP|2008|4.40|147|1290|1.35
+Paul Byrd|CLE|e00s|SP|2007|4.41|109|929|1.30
+Steve Trachsel|NYM|e00s|SP|2006|4.39|143|1345|1.36
+# ---- 2010s-20s ----
+Alcides Escobar|KCR|e10s|SS|2015|.258|.293|.343|30|180
+Brandon Phillips|CIN|e10s|2B|2011|.275|.320|.420|211|209
+Jeff Mathis|LAA|e10s|C|2013|.194|.256|.301|50|10
+Martin Maldonado|HOU|e10s|C|2021|.207|.284|.352|100|10
+Billy Hamilton|CIN|e10s|CF|2016|.239|.297|.309|25|326
+Ben Revere|MIN|e10s|CF|2014|.284|.319|.343|10|187
+Nick Markakis|ATL|e10s|RF|2018|.288|.358|.423|189|60
+Eric Hosmer|KCR|e10s|1B|2017|.277|.335|.428|198|70
+Jonathan Schoop|BAL|e10s|2B|2017|.254|.291|.436|180|10
+Chris Davis|BAL|e10s|1B|2013|.245|.328|.483|295|20
+Ian Desmond|WSN|e10s|SS|2014|.265|.316|.425|180|180
+Marcus Semien|OAK|e10s|SS|2019|.259|.325|.440|200|100
+Kevin Pillar|TOR|e10s|CF|2015|.260|.297|.406|110|80
+Rick Porcello|BOS|e10s|SP|2016|4.40|150|1620|1.33
+Ivan Nova|NYY|e10s|SP|2016|4.31|91|1000|1.35
+Mike Leake|CIN|e10s|SP|2015|4.19|110|1000|1.28
+Kyle Gibson|MIN|e10s|SP|2018|4.53|95|1200|1.40
+Marco Estrada|TOR|e10s|SP|2016|4.20|75|1000|1.25
+`
+
 export const PLAYERS = [
   ...parsePlayers(BATTERS, { stats: ['avg', 'obp', 'slg', 'hr', 'sb'] }),
   ...parsePlayers(PITCHERS, { stats: ['era', 'w', 'so', 'whip'] }),
+  // Regulars are split by whether the row carries an ERA column.
+  ...parsePlayers(
+    REGULARS.split('\n').filter((l) => !l.includes('|SP|') && !l.includes('|RP|')).join('\n'),
+    { stats: ['avg', 'obp', 'slg', 'hr', 'sb'] },
+  ),
+  ...parsePlayers(
+    REGULARS.split('\n').filter((l) => l.startsWith('#') || l.includes('|SP|') || l.includes('|RP|')).join('\n'),
+    { stats: ['era', 'w', 'so', 'whip'] },
+  ),
 ]

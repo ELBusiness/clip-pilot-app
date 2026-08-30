@@ -1,66 +1,143 @@
 /**
- * Baseball — the 162-0 game.
+ * 162-0 — draft nine, play a season, try not to lose.
  *
- * WHY THE MATH IS SHAPED THIS WAY
- * -------------------------------
- * The obvious way to build this genre is to add a roster's counting stats into
- * a single "strength rating" and map that onto a record. It is also wrong, and
- * it is why those versions feel arbitrary: adding nine players' Runs Created
- * together double-counts, because a lineup of nine Babe Ruths does not score
- * nine times what one Babe Ruth does.
+ * The roster is the nine fielding positions, 1 through 9 on a scorecard. That
+ * is baseball's answer to 82-0's starting five: the whole team on the field,
+ * one pick each, short enough to play in a couple of minutes.
  *
- * Instead this computes team rates first and converts once:
+ * THREE THINGS THIS MODEL DOES THAT THE OTHER VERSIONS OF THIS GAME DO NOT
+ * ---------------------------------------------------------------------------
  *
- *   1. Runs scored uses Bill James' basic Runs Created identity,
- *      RC = OBP x SLG x AB, applied to the *lineup's* aggregate OBP and SLG
- *      over a team-season of at-bats. Because it operates on rates, stacking
- *      great hitters compounds the way real offense does.
+ * 1. ERA AND OPS ARE ADJUSTED FOR THE ERA THEY WERE PUT UP IN.
+ *    A 2.17 ERA in 1913 is not a 2.17 ERA today — the whole league sat near
+ *    2.75 back then. Comparing raw numbers across a century makes deadball
+ *    pitchers look superhuman and 1960s hitters look weak. Every stat here is
+ *    normalized against its own decade's league average before it is used, the
+ *    same idea behind ERA+ and OPS+.
  *
- *   2. Runs allowed comes from staff ERA weighted by realistic innings shares
- *      (a rotation carries roughly 72% of modern innings), scaled up for
- *      unearned runs, which ERA excludes but the scoreboard does not.
+ * 2. RUNS COME FROM BASERUNS, NOT A "STRENGTH RATING".
+ *    Adding a roster's counting stats into one number is what most versions of
+ *    this game do, and it falls apart at the top: it happily projects a lineup
+ *    scoring more runs than there are baserunners to drive in. BaseRuns is the
+ *    estimator built for exactly this problem — it cannot return more runs than
+ *    the number of men who actually reached base, so stacking nine sluggers
+ *    compounds hard but stays inside physical reality.
  *
- *   3. Those two rates drive a game-by-game Poisson simulation, and the
- *      resulting totals are checked against Pythagenpat expectation so the
- *      result screen can separate roster quality from luck.
+ * 3. YOUR ACE DOES NOT PITCH ALL 162 GAMES.
+ *    A real ace throws about 15% of a team's innings. Letting the drafted
+ *    pitcher's ERA stand in for the whole staff is the single biggest reason a
+ *    roster of legends used to run away with the season. Here he anchors the
+ *    staff at roughly 30% — enough that the pick matters a lot, honest enough
+ *    that it does not hand you a sub-3.00 team ERA for free.
  *
- * The formula calibrates itself: plug in a league-average lineup (.330/.420)
- * and a 4.00 ERA staff and it returns roughly 762 runs scored, 697 allowed,
- * and 87 wins — which is what an average MLB team actually does.
+ * Calibration is checked against real baseball, not vibes: feed it a
+ * league-average lineup and a league-average ace and it returns about 740 runs
+ * scored, 700 allowed, and 84 wins, which is roughly what an average team does.
  */
 
-import type { CompareKey, LeagueContext, RatedPlayer, RosterSlot, Ruleset, TeamRating } from '@/engine/types'
+import type {
+  CompareKey,
+  LeagueContext,
+  Player,
+  RatedPlayer,
+  RosterSlot,
+  Ruleset,
+  TeamRating,
+} from '@/engine/types'
 import { pct3 } from '../parse'
 import { ERAS, FRANCHISES, PLAYERS } from './players'
+
+const SEASON_GAMES = 162
 
 /** At-bats in a team-season. Real clubs land near 5,500. */
 const TEAM_AT_BATS = 5500
 
-/** Modern rotations throw about 72% of innings; the rest is bullpen. */
-const ROTATION_SHARE = 0.72
-
 /** ERA counts earned runs only; the scoreboard counts all of them. */
 const UNEARNED_RUN_FACTOR = 1.075
 
-const SEASON_GAMES = 162
+/**
+ * Share of team innings credited to the drafted ace. A real workhorse throws
+ * closer to 15%; 25% is a deliberate thumb on the scale so the pitching pick
+ * carries real weight without erasing the other four-fifths of a staff.
+ */
+const ACE_INNINGS_SHARE = 0.25
 
-/** League-average reference points, used to place a roster on the z scale. */
-const LEAGUE_OBP = 0.32
-const LEAGUE_SLG = 0.41
-const LEAGUE_ERA = 4.0
+/** Home runs are estimated from isolated power; this is the fitted rate. */
+const HR_PER_ISO_AB = 0.28
+
+/**
+ * Share of plate appearances actually taken by the drafted nine.
+ *
+ * Nobody plays 162 games. Real regulars start about 143 of them, and the rest
+ * go to a bench this game does not let you draft. Crediting a roster of legends
+ * with every plate appearance of the season is quietly one of the largest
+ * sources of inflation in this genre: it hands you a full year of nine Hall of
+ * Famers with no rest days, no injuries, and no platoon disadvantage.
+ */
+const STARTER_PA_SHARE = 0.88
+
+/** What the bench hits when the stars sit. Roughly replacement level. */
+const BENCH = { avg: 0.235, obp: 0.29, slg: 0.36 }
+
+/**
+ * The reference run environment every stat is normalized into — roughly the
+ * 2010s, so the numbers on screen read the way a modern fan expects.
+ */
+const REF = { avg: 0.25, obp: 0.32, slg: 0.405, era: 4.05 }
+
+interface LeagueEnv {
+  avg: number
+  obp: number
+  slg: number
+  era: number
+}
+
+/**
+ * League averages by decade. Baseball's run environment swings enormously —
+ * the deadball era, the 1930s, the 1968 pitching peak, the steroid era — and
+ * ignoring that is the difference between a fair comparison and a fantasy.
+ */
+export function leagueEnv(year: number): LeagueEnv {
+  if (year <= 1919) return { avg: 0.255, obp: 0.32, slg: 0.335, era: 2.75 }
+  if (year <= 1929) return { avg: 0.285, obp: 0.348, slg: 0.397, era: 4.0 }
+  if (year <= 1939) return { avg: 0.28, obp: 0.345, slg: 0.4, era: 4.3 }
+  if (year <= 1949) return { avg: 0.265, obp: 0.335, slg: 0.37, era: 3.65 }
+  if (year <= 1959) return { avg: 0.263, obp: 0.335, slg: 0.395, era: 3.95 }
+  if (year <= 1969) return { avg: 0.25, obp: 0.32, slg: 0.375, era: 3.55 }
+  if (year <= 1979) return { avg: 0.257, obp: 0.325, slg: 0.375, era: 3.7 }
+  if (year <= 1989) return { avg: 0.26, obp: 0.325, slg: 0.385, era: 3.95 }
+  if (year <= 1999) return { avg: 0.266, obp: 0.335, slg: 0.415, era: 4.3 }
+  if (year <= 2009) return { avg: 0.266, obp: 0.335, slg: 0.425, era: 4.45 }
+  if (year <= 2019) return { avg: 0.254, obp: 0.32, slg: 0.405, era: 4.05 }
+  return { avg: 0.247, obp: 0.315, slg: 0.4, era: 4.15 }
+}
+
+/** A batter's rates, rebased from his own era into the reference environment. */
+export function normalizedBatting(player: Player) {
+  const lg = leagueEnv(player.year)
+  return {
+    avg: (player.stats['avg'] ?? 0) * (REF.avg / lg.avg),
+    obp: (player.stats['obp'] ?? 0) * (REF.obp / lg.obp),
+    slg: (player.stats['slg'] ?? 0) * (REF.slg / lg.slg),
+  }
+}
+
+/** A pitcher's ERA, rebased the same way. This is ERA+ expressed as an ERA. */
+export function normalizedEra(player: Player): number {
+  const lg = leagueEnv(player.year)
+  return (player.stats['era'] ?? REF.era) * (REF.era / lg.era)
+}
 
 export const SLOTS: RosterSlot[] = [
-  { id: 'C', label: 'Catcher', group: 'Lineup', accepts: ['C'] },
-  { id: '1B', label: 'First Base', group: 'Lineup', accepts: ['1B'] },
-  { id: '2B', label: 'Second Base', group: 'Lineup', accepts: ['2B'] },
-  { id: '3B', label: 'Third Base', group: 'Lineup', accepts: ['3B'] },
-  { id: 'SS', label: 'Shortstop', group: 'Lineup', accepts: ['SS'] },
-  { id: 'LF', label: 'Left Field', group: 'Lineup', accepts: ['LF', 'CF', 'RF', 'OF'] },
-  { id: 'CF', label: 'Center Field', group: 'Lineup', accepts: ['CF', 'OF'] },
-  { id: 'RF', label: 'Right Field', group: 'Lineup', accepts: ['RF', 'CF', 'LF', 'OF'] },
-  { id: 'SP1', label: 'Ace', group: 'Rotation', accepts: ['SP'] },
-  { id: 'SP2', label: 'No. 2 Starter', group: 'Rotation', accepts: ['SP'] },
-  { id: 'CL', label: 'Closer', group: 'Bullpen', accepts: ['RP', 'SP'] },
+  { id: 'P', label: 'Pitcher', group: 'Battery', accepts: ['SP', 'RP'] },
+  { id: 'C', label: 'Catcher', group: 'Battery', accepts: ['C'] },
+  { id: '1B', label: 'First Base', group: 'Infield', accepts: ['1B'] },
+  { id: '2B', label: 'Second Base', group: 'Infield', accepts: ['2B'] },
+  { id: '3B', label: 'Third Base', group: 'Infield', accepts: ['3B'] },
+  { id: 'SS', label: 'Shortstop', group: 'Infield', accepts: ['SS'] },
+  { id: 'LF', label: 'Left Field', group: 'Outfield', accepts: ['LF', 'CF', 'RF', 'OF'] },
+  { id: 'CF', label: 'Center Field', group: 'Outfield', accepts: ['CF', 'OF'] },
+  { id: 'RF', label: 'Right Field', group: 'Outfield', accepts: ['RF', 'CF', 'LF', 'OF'] },
 ]
 
 const context: LeagueContext = {
@@ -68,6 +145,121 @@ const context: LeagueContext = {
   // One standard deviation of team quality is about half a run per game.
   spread: 0.45,
   model: 'poisson',
+}
+
+export function isPitcher(stats: Record<string, number>): boolean {
+  return stats['era'] !== undefined
+}
+
+/**
+ * BaseRuns: R = A x B / (B + C) + D.
+ *
+ * A is men on base, B is how far they get advanced, C is outs, D is home runs
+ * (which score themselves). The B/(B+C) term is a *rate* — the share of
+ * baserunners who come around — so as a lineup gets absurdly good the estimate
+ * approaches "everyone who reached base scored" and stops there, instead of
+ * running off to infinity the way a linear estimator does.
+ */
+export function baseRuns(avg: number, obp: number, slg: number, atBats: number): number {
+  const hits = avg * atBats
+  const totalBases = slg * atBats
+  // Walks implied by the gap between getting on base and getting a hit.
+  const walks = obp >= 1 ? 0 : Math.max(0, (obp * atBats - hits) / (1 - obp))
+  const homeRuns = Math.max(0, slg - avg) * HR_PER_ISO_AB * atBats
+
+  const onBase = hits + walks - homeRuns
+  const advancement =
+    (1.4 * totalBases - 0.6 * hits - 3 * homeRuns + 0.1 * walks) * 1.02
+  const outs = atBats - hits
+
+  if (advancement + outs <= 0) return homeRuns
+  return onBase * (advancement / (advancement + outs)) + homeRuns
+}
+
+function rate(roster: RatedPlayer[]): TeamRating {
+  const batters = roster.filter((r) => !isPitcher(r.player.stats))
+  const ace = roster.find((r) => isPitcher(r.player.stats))
+
+  // --- Offense -----------------------------------------------------------
+  // Team rates first, then one conversion. Averaging is a deliberate
+  // simplification: the top of a real order gets about 15% more plate
+  // appearances than the bottom, worth only a handful of runs across a season.
+  const size = Math.max(1, batters.length)
+  const norm = batters.map((r) => normalizedBatting(r.player))
+  const starterAvg = norm.reduce((s, n) => s + n.avg, 0) / size
+  const starterObp = norm.reduce((s, n) => s + n.obp, 0) / size
+  const starterSlg = norm.reduce((s, n) => s + n.slg, 0) / size
+
+  // Blend in the bench that takes the other twelve percent of the season.
+  const blend = (starter: number, bench: number) =>
+    starter * STARTER_PA_SHARE + bench * (1 - STARTER_PA_SHARE)
+  const teamAvg = blend(starterAvg, BENCH.avg)
+  const teamObp = blend(starterObp, BENCH.obp)
+  const teamSlg = blend(starterSlg, BENCH.slg)
+
+  const runsScored = baseRuns(teamAvg, teamObp, teamSlg, TEAM_AT_BATS)
+  const offense = runsScored / SEASON_GAMES
+
+  // --- Run prevention ----------------------------------------------------
+  const aceEra = ace ? normalizedEra(ace.player) : REF.era
+  const staffEra = aceEra * ACE_INNINGS_SHARE + REF.era * (1 - ACE_INNINGS_SHARE)
+  const defense = staffEra * UNEARNED_RUN_FACTOR
+  const runsAllowed = defense * SEASON_GAMES
+
+  const factors = [
+    {
+      label: 'Lineup OBP',
+      value: pct3(teamObp),
+      z: clamp((teamObp - REF.obp) / 0.075),
+      detail: 'Era-adjusted, including the bench that plays 12% of the season',
+    },
+    {
+      label: 'Lineup SLG',
+      value: pct3(teamSlg),
+      z: clamp((teamSlg - REF.slg) / 0.14),
+      detail: 'Era-adjusted total bases per at-bat',
+    },
+    {
+      label: 'Projected runs',
+      value: Math.round(runsScored).toString(),
+      z: clamp((offense - context.averageScore) / 1.6),
+      detail: `${offense.toFixed(2)} per game · BaseRuns`,
+    },
+    {
+      label: 'Ace',
+      value: aceEra.toFixed(2),
+      z: clamp((REF.era - aceEra) / 1.4),
+      detail: ace
+        ? `${ace.player.name}, era-adjusted from ${(ace.player.stats['era'] ?? 0).toFixed(2)}`
+        : 'No pitcher drafted',
+    },
+    {
+      label: 'Staff ERA',
+      value: staffEra.toFixed(2),
+      z: clamp((REF.era - staffEra) / 0.55),
+      detail: `Your ace covers ${Math.round(ACE_INNINGS_SHARE * 100)}% of innings; the rest is league average`,
+    },
+    {
+      label: 'Projected runs allowed',
+      value: Math.round(runsAllowed).toString(),
+      z: clamp((context.averageScore - defense) / 1.0),
+      detail: `${defense.toFixed(2)} per game`,
+    },
+  ]
+
+  return { offense, defense, factors }
+}
+
+function clamp(value: number): number {
+  return Math.max(-1, Math.min(1, value))
+}
+
+function statLine(player: Player): string {
+  const s = player.stats
+  if (isPitcher(s)) {
+    return `${(s['era'] ?? 0).toFixed(2)} ERA · ${s['w'] ?? 0} W · ${s['so'] ?? 0} K`
+  }
+  return `${pct3(s['avg'] ?? 0)}/${pct3(s['obp'] ?? 0)}/${pct3(s['slg'] ?? 0)} · ${s['hr'] ?? 0} HR`
 }
 
 const compareKeys: CompareKey[] = [
@@ -82,90 +274,6 @@ const compareKeys: CompareKey[] = [
   { key: 'whip', label: 'WHIP', higherIsBetter: false, format: (v) => v.toFixed(2) },
 ]
 
-export function isPitcher(stats: Record<string, number>): boolean {
-  return typeof stats['era'] === 'number'
-}
-
-function rate(roster: RatedPlayer[]): TeamRating {
-  const batters = roster.filter((r) => !isPitcher(r.player.stats))
-  const pitchers = roster.filter((r) => isPitcher(r.player.stats))
-
-  // --- Offense -------------------------------------------------------------
-  // Average the lineup's rates, then run Runs Created once on the team line.
-  // Equal weighting is a deliberate simplification: real lineups give the top
-  // of the order roughly 15% more plate appearances than the bottom, which
-  // moves a team's run total by only a handful of runs across a season.
-  const lineupSize = Math.max(1, batters.length)
-  const teamObp = batters.reduce((sum, r) => sum + (r.player.stats['obp'] ?? 0), 0) / lineupSize
-  const teamSlg = batters.reduce((sum, r) => sum + (r.player.stats['slg'] ?? 0), 0) / lineupSize
-  const runsScored = teamObp * teamSlg * TEAM_AT_BATS
-  const offense = runsScored / SEASON_GAMES
-
-  // --- Run prevention ------------------------------------------------------
-  const starters = pitchers.filter((r) => r.slot.group === 'Rotation')
-  const relievers = pitchers.filter((r) => r.slot.group !== 'Rotation')
-
-  const meanEra = (group: RatedPlayer[], fallback: number) =>
-    group.length === 0
-      ? fallback
-      : group.reduce((sum, r) => sum + (r.player.stats['era'] ?? fallback), 0) / group.length
-
-  const rotationEra = meanEra(starters, LEAGUE_ERA)
-  const bullpenEra = meanEra(relievers, LEAGUE_ERA)
-  const staffEra = rotationEra * ROTATION_SHARE + bullpenEra * (1 - ROTATION_SHARE)
-  const defense = staffEra * UNEARNED_RUN_FACTOR
-
-  // --- Legible breakdown ---------------------------------------------------
-  // z is a rough "how far from league average" scale so the UI can colour a
-  // factor without every sport inventing its own thresholds.
-  const factors = [
-    {
-      label: 'Lineup OBP',
-      value: pct3(teamObp),
-      z: clamp((teamObp - LEAGUE_OBP) / 0.09),
-      detail: 'How often the order avoids making an out',
-    },
-    {
-      label: 'Lineup SLG',
-      value: pct3(teamSlg),
-      z: clamp((teamSlg - LEAGUE_SLG) / 0.16),
-      detail: 'Total bases per at-bat',
-    },
-    {
-      label: 'Projected runs',
-      value: Math.round(runsScored).toString(),
-      z: clamp((offense - context.averageScore) / 2.2),
-      detail: `${offense.toFixed(2)} per game`,
-    },
-    {
-      label: 'Staff ERA',
-      value: staffEra.toFixed(2),
-      z: clamp((LEAGUE_ERA - staffEra) / 1.3),
-      detail: `Rotation ${rotationEra.toFixed(2)} · bullpen ${bullpenEra.toFixed(2)}`,
-    },
-    {
-      label: 'Projected runs allowed',
-      value: Math.round(defense * SEASON_GAMES).toString(),
-      z: clamp((context.averageScore - defense) / 2.2),
-      detail: `${defense.toFixed(2)} per game`,
-    },
-  ]
-
-  return { offense, defense, factors }
-}
-
-function clamp(value: number): number {
-  return Math.max(-1, Math.min(1, value))
-}
-
-function statLine(player: Parameters<Ruleset['statLine']>[0]): string {
-  const s = player.stats
-  if (isPitcher(s)) {
-    return `${(s['era'] ?? 0).toFixed(2)} ERA · ${s['w'] ?? 0} W · ${s['so'] ?? 0} K`
-  }
-  return `${pct3(s['avg'] ?? 0)}/${pct3(s['obp'] ?? 0)}/${pct3(s['slg'] ?? 0)} · ${s['hr'] ?? 0} HR`
-}
-
 export const baseball: Ruleset = {
   id: 'baseball',
   slug: '162-0',
@@ -174,7 +282,11 @@ export const baseball: Ruleset = {
   tagline: 'Draft a roster that never loses a game.',
   seasonGames: SEASON_GAMES,
   drawsPossible: false,
-  benchmark: { wins: 116, holder: '1906 Cubs & 2001 Mariners', note: 'No team has ever won more than 116 games in a season.' },
+  benchmark: {
+    wins: 116,
+    holder: '1906 Cubs & 2001 Mariners',
+    note: 'No team has ever won more than 116 games in a season.',
+  },
   slots: SLOTS,
   eras: ERAS,
   franchises: FRANCHISES,

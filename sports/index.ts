@@ -1,21 +1,9 @@
-import type { Ruleset, SportId } from '@/engine/types'
 import { baseball } from './baseball'
-import { basketball } from './basketball'
-import { football } from './football'
-import { soccer } from './soccer'
 
-/** Every sport pack, in the order they appear on the home screen. */
-export const SPORTS: Ruleset[] = [baseball, basketball, football, soccer]
-
-export const SPORTS_BY_ID: Record<SportId, Ruleset> = {
-  baseball,
-  basketball,
-  football,
-  soccer,
-}
-
-export function bySlug(slug: string): Ruleset | undefined {
-  return SPORTS.find((s) => s.slug === slug)
-}
-
-export { baseball, basketball, football, soccer }
+/**
+ * One game, one sport. The Ruleset shape stays because baseball implements it
+ * and the engine is written against it, but this ships as a single MLB game:
+ * competing in four verticals at once means being second-best in all of them.
+ */
+export const baseballGame = baseball
+export { baseball }
