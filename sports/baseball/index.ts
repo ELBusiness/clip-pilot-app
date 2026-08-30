@@ -318,7 +318,9 @@ function toScore(runs: number): number {
 }
 
 function describeArm(era: number, reliever: boolean): string {
-  const role = reliever ? 'reliever' : 'starter'
+  // Short enough to sit beside three stat columns on a phone. The position
+  // badge already says SP or RP, so the label only has to carry the grade.
+  const role = reliever ? 'RP' : 'SP'
   if (era <= 2.9) return `Ace ${role}`
   if (era <= 3.5) return `Strong ${role}`
   if (era <= 4.2) return `Solid ${role}`
@@ -326,14 +328,14 @@ function describeArm(era: number, reliever: boolean): string {
 }
 
 function describeBat(batRuns: number, def: number): string {
-  const glove = def >= 0.7 ? 'elite glove' : def <= -0.7 ? 'poor glove' : null
+  const glove = def >= 0.7 ? '+glove' : def <= -0.7 ? '-glove' : null
   const stick =
     batRuns >= 30 ? 'Superstar bat'
       : batRuns >= 15 ? 'Big bat'
         : batRuns >= 3 ? 'Solid bat'
           : batRuns >= -8 ? 'Light bat'
             : 'Weak bat'
-  return glove ? `${stick}, ${glove}` : stick
+  return glove ? `${stick} · ${glove}` : stick
 }
 
 function rate(roster: RatedPlayer[]): TeamRating {

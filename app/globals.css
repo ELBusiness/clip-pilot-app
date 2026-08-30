@@ -195,75 +195,78 @@ button {
   border-radius: 999px;
 }
 
-/* ---------- Slot machine ---------- */
+/* ---------- Two reels ---------- */
 
 /*
- * The reel is the moment of the game, so it gets real estate and real motion.
- * The franchise's own colours flood it, which is both the identity cue and the
- * thing that makes two consecutive spins feel different.
+ * Team and era are separate reels, the way a slot machine actually reads, and
+ * the way this genre presents itself. One combined card gives the player no
+ * sense that two independent things were drawn.
  */
-.reel {
+.reels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.reel-card {
   position: relative;
-  border-radius: var(--radius-lg);
-  padding: 18px;
-  margin-bottom: 10px;
-  border: 1px solid var(--line);
-  background:
-    linear-gradient(150deg, var(--c1, #2a2f3a) 0%, var(--c2, #171a21) 55%, var(--bg-card) 100%);
+  border-radius: 14px;
+  padding: 12px 10px 13px;
+  text-align: center;
+  background: var(--bg-card);
+  border: 2px solid var(--reel-edge, var(--line-bright));
+  box-shadow: 0 0 0 3px var(--reel-halo, transparent), 0 6px 20px -12px #000;
   overflow: hidden;
-  min-height: 116px;
-  display: flex;
-  align-items: center;
-}
-
-/* A dark scrim so white type stays legible over any team's palette. */
-.reel::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, rgba(6, 7, 10, 0.82) 0%, rgba(6, 7, 10, 0.5) 100%);
-  pointer-events: none;
-}
-
-.reel-inner {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  min-width: 0;
-}
-
-.reel-label {
-  font-size: 11px;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.62);
-  font-weight: 700;
-  margin-bottom: 5px;
-}
-
-/* The viewport the reel scrolls inside. Fixed height so the page never jumps. */
-.reel-window {
-  height: 74px;
-  overflow: hidden;
-  position: relative;
-}
-
-.reel-slide {
+  min-height: 84px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  height: 74px;
 }
 
-/* Each new franchise drops in from above, the way a physical reel settles. */
-.reel-slide.drop {
-  animation: reel-drop 0.16s cubic-bezier(0.2, 0.9, 0.3, 1);
+.reel-card.team {
+  --reel-edge: var(--accent);
+  --reel-halo: rgba(245, 197, 24, 0.16);
 }
 
-@keyframes reel-drop {
+.reel-card.era {
+  --reel-edge: #7c5cff;
+  --reel-halo: rgba(124, 92, 255, 0.16);
+}
+
+.reel-kicker {
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: var(--text-faint);
+  margin-bottom: 5px;
+}
+
+.reel-value {
+  font-size: clamp(17px, 5.4vw, 23px);
+  font-weight: 850;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.reel-sub {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  margin-top: 3px;
+  font-weight: 650;
+}
+
+/* Each tick of the reel drops the next value in from above. */
+.reel-card.rolling .reel-value {
+  animation: reel-tick 0.09s linear;
+}
+
+@keyframes reel-tick {
   from {
-    transform: translateY(-46px);
-    opacity: 0.15;
+    transform: translateY(-14px);
+    opacity: 0.25;
   }
   to {
     transform: translateY(0);
@@ -271,115 +274,203 @@ button {
   }
 }
 
-/* The landing beat: a short overshoot so the stop reads as a stop. */
-.reel-slide.settle {
-  animation: reel-settle 0.42s cubic-bezier(0.16, 1.2, 0.3, 1);
+.reel-card.landed {
+  animation: reel-land 0.4s cubic-bezier(0.16, 1.25, 0.35, 1);
 }
 
-@keyframes reel-settle {
+@keyframes reel-land {
   0% {
-    transform: translateY(-30px);
-    opacity: 0.4;
+    transform: scale(0.96);
   }
-  60% {
-    transform: translateY(4px);
+  55% {
+    transform: scale(1.035);
   }
   100% {
-    transform: translateY(0);
-    opacity: 1;
+    transform: scale(1);
   }
 }
 
-.reel-team {
-  font-size: clamp(23px, 6.6vw, 31px);
-  font-weight: 800;
-  letter-spacing: -0.035em;
-  line-height: 1.06;
-  color: #fff;
-  text-wrap: balance;
-}
+/* ---------- The field ---------- */
 
-.reel-era {
-  font-size: 14.5px;
-  color: rgba(255, 255, 255, 0.72);
-  font-weight: 650;
-  margin-top: 4px;
-}
-
-/* ---------- Roster strip ---------- */
-
-/*
- * Thirteen slots as a two-row chip strip instead of a card grid. The grid
- * version ate three-fifths of a phone screen and pushed the pick list — the
- * only thing you actually tap — below the fold.
- */
-.strip {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+.field-wrap {
   margin-bottom: 12px;
 }
 
-.chip {
+.field {
   position: relative;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--bg-raised);
-  padding: 6px 2px 5px;
-  text-align: center;
-  min-height: 40px;
+  width: 100%;
+  aspect-ratio: 1 / 0.92;
+  border-radius: 16px;
   overflow: hidden;
+  background: linear-gradient(180deg, #0d1a14 0%, #0a1210 70%, var(--bg-card) 100%);
+  border: 1px solid var(--line);
 }
 
-.chip-pos {
-  font-size: 9.5px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: var(--text-faint);
-  line-height: 1;
+.field-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
-.chip-rating {
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.15;
-  margin-top: 3px;
-  letter-spacing: -0.02em;
+.fl-grass {
+  fill: rgba(46, 122, 76, 0.16);
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 0.5;
 }
 
-.chip.filled {
-  background: var(--bg-card);
+.fl-dirt {
+  fill: rgba(150, 104, 62, 0.22);
+  stroke: none;
+}
+
+.fl-line {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-width: 0.6;
+}
+
+/* A position marker sits at its real spot on the field. */
+.spot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  min-width: 56px;
+  padding: 5px 6px 6px;
+  border-radius: 9px;
+  border: 1px dashed var(--line-bright);
+  background: rgba(10, 13, 18, 0.72);
+  backdrop-filter: blur(2px);
+  text-align: center;
+  line-height: 1.1;
+}
+
+.spot.filled {
+  border-style: solid;
   border-color: var(--line-bright);
+  background: rgba(16, 20, 28, 0.93);
 }
 
-.chip.filled .chip-pos {
-  color: var(--text-dim);
+.spot.next {
+  border-color: var(--accent);
+  border-style: solid;
+  box-shadow: 0 0 0 2px rgba(245, 197, 24, 0.22);
 }
 
-.chip.empty .chip-rating {
+.spot-pos {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+}
+
+.spot.filled .spot-pos {
+  color: var(--accent);
+}
+
+.spot-name {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 1px;
+  max-width: 70px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spot-dash {
+  display: block;
+  font-size: 11px;
+  color: var(--line-bright);
+  margin-top: 1px;
+}
+
+.spot-rating {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--good);
+  margin-top: 1px;
+}
+
+/* The DH and the staff are not on the field, so they sit beside it. */
+.bench {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.bench-slot .bench-name {
+  color: var(--text);
+}
+
+.bench-slot:not(.filled) .bench-name {
   color: var(--line-bright);
 }
 
-/* The slot the next pick will most likely fill. */
-.chip.next {
+.bench-slot {
+  padding: 7px 6px;
+  border-radius: 10px;
+  border: 1px dashed var(--line-bright);
+  background: var(--bg-raised);
+  text-align: center;
+  min-width: 0;
+}
+
+.bench-slot.filled {
+  border-style: solid;
+  background: var(--bg-card);
+}
+
+.bench-slot.next {
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px rgba(245, 197, 24, 0.28);
+  border-style: solid;
+}
+
+.bench-pos {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+}
+
+.bench-slot.filled .bench-pos {
+  color: var(--accent);
+}
+
+.bench-name {
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bench-rating {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--good);
+  margin-top: 1px;
+}
+
+.bench-rating.empty {
+  color: var(--line-bright);
 }
 
 /* ---------- Live projection ---------- */
 
-/*
- * A running projection turns each pick into a visible consequence instead of a
- * guess, which is the difference between a draft and a series of shrugs. Empty
- * slots are projected as league-average players, so the number answers "if I
- * stopped here, what would this team do?"
- */
 .projection {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   padding: 9px 12px;
   border-radius: 10px;
   background: var(--bg-raised);
@@ -406,7 +497,7 @@ button {
   height: 5px;
   border-radius: 3px;
   background: var(--line);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .projection-bar span {
@@ -417,7 +508,6 @@ button {
   transition: width 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
-/* Where the all-time record sits on that bar, so the target is visible. */
 .projection-bar i {
   position: absolute;
   top: -3px;
@@ -425,6 +515,163 @@ button {
   width: 2px;
   background: var(--text-faint);
   border-radius: 1px;
+}
+
+/* ---------- Position dock ---------- */
+
+/*
+ * While picking, the field is replaced by the list, so this strip keeps the
+ * roster visible: which positions are filled, what they are worth, and what is
+ * still open. Without it a player has to remember thirteen slots from the
+ * previous screen.
+ */
+.dock {
+  display: grid;
+  grid-template-columns: repeat(13, 1fr);
+  gap: 3px;
+  margin-bottom: 10px;
+}
+
+.dock-slot {
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--bg-raised);
+  padding: 4px 1px 3px;
+  text-align: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dock-slot.filled {
+  background: var(--bg-card);
+  border-color: var(--line-bright);
+}
+
+.dock-slot.next {
+  border-color: var(--accent);
+}
+
+.dock-pos {
+  display: block;
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--text-faint);
+  line-height: 1;
+}
+
+.dock-slot.filled .dock-pos {
+  color: var(--accent);
+}
+
+.dock-rating {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--good);
+}
+
+.dock-slot:not(.filled) .dock-rating {
+  color: var(--line-bright);
+}
+
+/* ---------- Pick screen controls ---------- */
+
+.pick-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.pill {
+  font-size: 12.5px;
+  font-weight: 750;
+  padding: 7px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-bright);
+  background: var(--bg-raised);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pill.team {
+  border-color: rgba(245, 197, 24, 0.5);
+  color: var(--accent);
+  min-width: 0;
+}
+
+.pill.era {
+  border-color: rgba(124, 92, 255, 0.5);
+  color: #b9a8ff;
+  flex-shrink: 0;
+}
+
+.pick-head .respin {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 750;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-bright);
+  color: var(--text-dim);
+}
+
+.pick-head .respin:disabled {
+  opacity: 0.35;
+}
+
+.filters {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 9px;
+  align-items: center;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.filter-tab {
+  font-size: 12px;
+  font-weight: 750;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  color: var(--text-faint);
+  min-width: 30px;
+}
+
+.filter-tab.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.search::placeholder {
+  color: var(--text-faint);
+}
+
+.search:focus {
+  outline: none;
+  border-color: var(--line-bright);
 }
 
 /* ---------- Candidate list ---------- */
@@ -454,7 +701,7 @@ button {
 .cand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 9px;
   width: 100%;
   /* Without this the long stat line pushes the rating past the card's edge. */
   min-width: 0;
@@ -473,15 +720,15 @@ button {
 }
 
 .cand-pos {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: var(--accent);
   background: rgba(245, 197, 24, 0.1);
   border: 1px solid rgba(245, 197, 24, 0.25);
   border-radius: 6px;
-  padding: 4px 7px;
-  min-width: 42px;
+  padding: 4px 5px;
+  min-width: 34px;
   text-align: center;
   flex-shrink: 0;
 }
@@ -493,7 +740,7 @@ button {
 
 .cand-name {
   display: block;
-  font-size: 15.5px;
+  font-size: 14.5px;
   font-weight: 650;
   white-space: nowrap;
   overflow: hidden;
@@ -508,6 +755,35 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* A labelled column per stat. A slash line means nothing to a newcomer; a
+   column with "OBP" written under it at least names what the number is. */
+.statcols {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.statcol {
+  text-align: center;
+  min-width: 26px;
+}
+
+.statcol b {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.statcol small {
+  display: block;
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  font-weight: 700;
+  margin-top: 1px;
 }
 
 /* Plain-English read on the player, for anyone who does not parse slash lines. */
@@ -525,10 +801,10 @@ button {
 /* The rating is the anchor of the card: one number, always in the same place,
    so a list of twenty players can be scanned in a couple of seconds. */
 .cand-rating {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 800;
   letter-spacing: -0.03em;
-  min-width: 34px;
+  min-width: 28px;
   text-align: right;
   flex-shrink: 0;
 }

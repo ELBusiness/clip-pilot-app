@@ -141,24 +141,36 @@ rather than something to grind.
 
 ## Interface
 
-The draft screen is built around one constraint: a phone, held in one hand,
-where the pick list is the only thing you actually touch.
+The draft is two screens, not one, because the spin and the pick are two
+different moments and cramming them together wastes both.
 
-- **A compact roster strip, not a card grid.** Thirteen slots as two rows of
-  chips showing each pick's rating. The card-grid version ate three-fifths of
-  the screen and pushed the pick list below the fold; the strip moved it up
-  roughly 190px.
-- **A live projection.** A running record with the all-time 116-win mark drawn
-  on the bar, updating on every pick. Empty slots project as league-average
-  players, so it answers "if I stopped here, what would this team do?" — which
-  turns each pick into a visible consequence instead of a guess, and teaches a
-  newcomer what good looks like without a tutorial.
-- **The reel carries the franchise's colours** and drops each name in from
-  above, settling with a short overshoot, so a spin reads as a spin. A dark
-  scrim keeps white type legible over any team's palette.
-- **Historical club names.** The reel says Brooklyn Dodgers, Philadelphia
-  Athletics, St. Louis Browns, Montreal Expos — not the modern franchise that
-  eventually inherited those players.
+**The spin screen** is the reels, a SPIN button, the running projection, and the
+roster as a baseball field.
+
+- **The roster is a field, not a list.** The nine fielders sit where they
+  actually stand — the ace on the mound, the catcher behind the plate, the
+  outfield beyond the arc — with the designated hitter and the rest of the staff
+  off to the side, because that is where they are. "SS" and "CF" are jargon
+  until you see the position; the diagram is the sport's own and needs no
+  legend.
+- **Two reels, team and era**, drawn separately the way a slot machine reads.
+- **An explicit SPIN button.** Auto-rolling straight into a list throws away the
+  one moment of anticipation the genre has.
+- **A live projection** with the all-time 116-win mark drawn on the bar,
+  updating on every pick. Empty slots project as league-average players, so it
+  answers "if I stopped here, what would this team do?" That turns each pick
+  into a visible consequence and teaches a newcomer what good looks like without
+  a tutorial.
+
+**The pick screen** is the player list, with the roster compressed into a
+thirteen-slot dock so nothing has to be remembered from the previous screen.
+
+- **Filter and search**: all, infield, outfield, pitchers, plus a name search.
+- **Labelled stat columns** rather than a slash line. `.276/.346/.362` is
+  unreadable unless you already know the order; a column with `OBP` written
+  under it at least names the number.
+- **Historical club names.** Brooklyn Dodgers, Philadelphia Athletics, St. Louis
+  Browns, Montreal Expos — not the modern franchise that inherited them.
 
 ## Design decisions that matter
 

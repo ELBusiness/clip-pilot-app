@@ -18,6 +18,7 @@ import {
 import { runSeason, type RunResult } from '@/engine/run'
 import { dailyKey, dailyNumber, dailySeed, dailyShareText, encodeRun, seedCode } from '@/engine/share'
 import type { Combo, Player, Ruleset } from '@/engine/types'
+import Field from './Field'
 import SeasonReport from './SeasonReport'
 
 /** How long the reel cycles before it settles, in ms. */
@@ -63,6 +64,10 @@ export default function Game() {
   const [result, setResult] = useState<RunResult | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [mode, setMode] = useState<Mode>('free')
+  /** 'spin' shows the reels and the field; 'pick' shows the player list. */
+  const [phase, setPhase] = useState<'spin' | 'pick'>('spin')
+  const [filter, setFilter] = useState<'all' | 'IF' | 'OF' | 'P'>('all')
+  const [query, setQuery] = useState('')
   const [dailyDone, setDailyDone] = useState<StoredDaily | null>(null)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
@@ -87,12 +92,17 @@ export default function Game() {
       }
 
       setSpinning(true)
+      setFilter('all')
+      setQuery('')
       let elapsed = 0
       const tick = () => {
         elapsed += SPIN_TICK
         if (elapsed >= SPIN_MS) {
           setDisplay(next.spin)
           setSpinning(false)
+          // The pick list only appears once the reel has stopped, so the spin
+          // gets its own beat instead of being scenery behind a list.
+          setPhase('pick')
           return
         }
         setDisplay(pool[Math.floor(Math.random() * pool.length)] ?? next.spin)
@@ -111,11 +121,15 @@ export default function Game() {
       // No re-spins in the daily: everyone faces the same draw, so dodging a
       // thin franchise would make comparing records meaningless.
       const draft = createDraft(ruleset, seed, nextMode === 'daily' ? { rerolls: 0 } : {})
+      // Land on the spin screen: pressing SPIN is the moment of the game, and
+      // auto-rolling into a list throws it away.
       const next = spin(ruleset, draft)
       setState(next)
-      animateTo(next)
+      setDisplay(next.spin)
+      setPhase('spin')
+      setSpinning(false)
     },
-    [ruleset, animateTo],
+    [ruleset],
   )
 
   // A seed in the URL replays someone else's exact draft; ?daily opens today's.
@@ -156,7 +170,8 @@ export default function Game() {
         setDailyDone(record)
       }
     } else {
-      animateTo(next)
+      setDisplay(next.spin)
+      setPhase('spin')
     }
   }
 
@@ -166,6 +181,12 @@ export default function Game() {
     setPending(null)
     setState(next)
     animateTo(next)
+  }
+
+  /** The SPIN button: the reel is already decided, this plays it out. */
+  const onSpin = () => {
+    if (!state || spinning) return
+    animateTo(state)
   }
 
   const share = async () => {
@@ -237,10 +258,19 @@ export default function Game() {
     // list is ordered by the same runs-above-average the simulation scores, and
     // each card carries that number. Sorting by position instead would hide the
     // one thing a new player actually needs to know.
+    const groupOf = (player: Player) => {
+      if (player.positions.some((p) => p === 'SP' || p === 'RP')) return 'P'
+      if (player.positions.some((p) => p === 'OF' || p === 'LF' || p === 'CF' || p === 'RF')) return 'OF'
+      return 'IF'
+    }
+    const needle = query.trim().toLowerCase()
+
     return candidatesFor(ruleset, state, state.spin)
+      .filter((player) => filter === 'all' || groupOf(player) === filter)
+      .filter((player) => !needle || player.name.toLowerCase().includes(needle))
       .map((player) => ({ player, rating: playerRating(player) }))
       .sort((a, b) => b.rating.score - a.rating.score || a.player.name.localeCompare(b.player.name))
-  }, [ruleset, state, spinning])
+  }, [ruleset, state, spinning, filter, query])
 
   if (!state) return <main className="shell" />
 
@@ -275,36 +305,31 @@ export default function Game() {
         </span>
       </div>
 
-      <div
-        className="reel"
-        style={{
-          ['--c1' as string]: franchise?.colors[0] ?? '#2a2f3a',
-          ['--c2' as string]: franchise?.colors[1] ?? '#171a21',
-        }}
-      >
-        <div className="reel-inner">
-          <div className="reel-label">{spinning ? 'Spinning' : 'Draft from'}</div>
-          <div className="reel-window">
-            {/* Keyed on the franchise so React remounts it and the drop
-                animation replays on every tick of the reel. */}
-            <div
-              key={`${combo?.franchiseId}-${combo?.eraId}-${spinning ? 'x' : 'stop'}`}
-              className={`reel-slide ${spinning ? 'drop' : 'settle'}`}
-            >
-              <div className="reel-team">
-                {franchise ? franchiseNameFor(franchise, combo?.eraId) : '—'}
-              </div>
-              <div className="reel-era">{eraLabel}</div>
-            </div>
-          </div>
+      <div className="reels">
+        <div className={`reel-card team${spinning ? ' rolling' : ' landed'}`}>
+          <span className="reel-kicker">Team</span>
+          <span className="reel-value">
+            {franchise ? franchiseNameFor(franchise, combo?.eraId) : '—'}
+          </span>
+        </div>
+        <div className={`reel-card era${spinning ? ' rolling' : ' landed'}`}>
+          <span className="reel-kicker">Era</span>
+          <span className="reel-value">{eraLabel || '—'}</span>
         </div>
       </div>
 
-      <Projection ruleset={ruleset} state={state} />
+      {phase === 'spin' ? (
+        <>
+          <button className="btn" onClick={onSpin} disabled={spinning}>
+            {spinning ? 'Spinning…' : filled === 0 ? 'Spin' : 'Spin for the next pick'}
+          </button>
 
-      <RosterStrip ruleset={ruleset} state={state} nextSlotId={nextSlot?.id} />
-
-      {pending ? (
+          <div style={{ height: 12 }} />
+          <Projection ruleset={ruleset} state={state} />
+          <Field ruleset={ruleset} state={state} nextSlotId={nextSlot?.id} />
+          <div className="spacer" />
+        </>
+      ) : pending ? (
         <>
           <p className="pick-prompt">Where does {pending.name} play?</p>
           <div className="slot-row">
@@ -317,55 +342,66 @@ export default function Game() {
               Cancel
             </button>
           </div>
+          <Field ruleset={ruleset} state={state} nextSlotId={nextSlot?.id} />
+          <div className="spacer" />
         </>
       ) : (
         <>
+          <div className="pick-head">
+            <span className="pill team">
+              {franchise ? franchiseNameFor(franchise, combo?.eraId) : '—'}
+            </span>
+            <span className="pill era">{eraLabel}</span>
+            {mode === 'free' && (
+              <button className="respin" onClick={onReroll} disabled={state.rerolls <= 0}>
+                {state.rerolls > 0 ? 'Re-spin' : 'No re-spins'}
+              </button>
+            )}
+          </div>
+
+          <div className="filters">
+            <div className="filter-tabs">
+              {(['all', 'IF', 'OF', 'P'] as const).map((key) => (
+                <button
+                  key={key}
+                  className={`filter-tab${filter === key ? ' on' : ''}`}
+                  onClick={() => setFilter(key)}
+                >
+                  {key === 'all' ? 'All' : key}
+                </button>
+              ))}
+            </div>
+            <input
+              className="search"
+              placeholder="Search…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search players"
+            />
+          </div>
+
+          <Dock ruleset={ruleset} state={state} nextSlotId={nextSlot?.id} />
+
           <p className="pick-prompt">
-            {spinning
-              ? 'Spinning…'
-              : `${candidates.length} available · best first`}
+            {candidates.length} available · best first
           </p>
+
           <div className="candidates">
             {candidates.map(({ player, rating }) => (
               <button key={player.id} className="cand" onClick={() => choose(player)}>
                 <span className="cand-pos">{player.positions.join('/')}</span>
                 <span className="cand-body">
                   <span className="cand-name">{player.name}</span>
-                  <span className="cand-stat num">{ruleset.statLine(player)}</span>
                   <span className="cand-label">{rating.label}</span>
                 </span>
+                <StatColumns player={player} />
                 <span className={`cand-rating num ${ratingTier(rating.score)}`}>
                   {rating.score}
                 </span>
               </button>
             ))}
-          </div>
-          <div className="btn-row">
-            {mode === 'daily' ? (
-              <button
-                className="btn ghost"
-                onClick={() => start(dailySeed('baseball'), 'daily')}
-                disabled={spinning}
-              >
-                Restart today's draft
-              </button>
-            ) : (
-              <button
-                className="btn ghost"
-                onClick={onReroll}
-                disabled={state.rerolls <= 0 || spinning}
-              >
-                {state.rerolls > 0 ? `Re-spin (${state.rerolls} left)` : 'No re-spins left'}
-              </button>
-            )}
-            {mode === 'free' && (
-              <button
-                className="btn ghost"
-                onClick={() => start(dailySeed('baseball'), 'daily')}
-                disabled={spinning}
-              >
-                {dailyDone?.date === dailyKey() ? `Daily · ${dailyDone.record}` : 'Play the Daily'}
-              </button>
+            {candidates.length === 0 && (
+              <p className="pick-prompt">No players match that filter.</p>
             )}
           </div>
         </>
@@ -374,6 +410,78 @@ export default function Game() {
       {toast && <div className="toast">{toast}</div>}
     </main>
   )
+}
+
+/**
+ * The roster, compressed to a strip. The field is replaced by the player list
+ * while picking, so without this a player has to remember thirteen slots from
+ * the previous screen.
+ */
+function Dock({
+  ruleset,
+  state,
+  nextSlotId,
+}: {
+  ruleset: Ruleset
+  state: DraftState
+  nextSlotId?: string
+}) {
+  return (
+    <div className="dock">
+      {ruleset.slots.map((slot) => {
+        const pick = state.picks.find((p) => p.slotId === slot.id)
+        const player = pick && ruleset.players.find((p) => p.id === pick.playerId)
+        const rating = player ? playerRating(player) : null
+        return (
+          <div
+            key={slot.id}
+            className={`dock-slot${player ? ' filled' : ''}${slot.id === nextSlotId ? ' next' : ''}`}
+            title={player ? `${slot.label}: ${player.name}` : slot.label}
+          >
+            <span className="dock-pos">{slot.id}</span>
+            <span className="dock-rating num">{rating ? rating.score : '\u2014'}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/**
+ * The three stats that decide a player, each with its name written under it.
+ * A slash line like ".276/.346/.362" is unreadable unless you already know the
+ * order; a labelled column at least tells you what you are looking at.
+ */
+function StatColumns({ player }: { player: Player }) {
+  const s = player.stats
+  const cols =
+    s['era'] !== undefined
+      ? [
+          { label: 'ERA', value: (s['era'] ?? 0).toFixed(2) },
+          { label: 'W', value: String(s['w'] ?? 0) },
+          { label: 'K', value: String(s['so'] ?? 0) },
+        ]
+      : [
+          { label: 'AVG', value: fmt3(s['avg'] ?? 0) },
+          { label: 'OBP', value: fmt3(s['obp'] ?? 0) },
+          { label: 'HR', value: String(s['hr'] ?? 0) },
+        ]
+
+  return (
+    <span className="statcols">
+      {cols.map((col) => (
+        <span key={col.label} className="statcol">
+          <b className="num">{col.value}</b>
+          <small>{col.label}</small>
+        </span>
+      ))}
+    </span>
+  )
+}
+
+/** Baseball writes rate stats as .276, not 0.276. */
+function fmt3(value: number): string {
+  return value.toFixed(3).replace(/^0\./, '.')
 }
 
 /** Rating bands, so the number is readable at a glance and not just a number. */
