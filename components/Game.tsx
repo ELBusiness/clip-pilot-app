@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { baseball } from '@/sports'
-import { playerRating, projectPartial } from '@/sports/baseball'
+import { PAYROLL_CAP, payrollOf, playerCost, playerRating, projectPartial } from '@/sports/baseball'
 import { eraLabelFor, franchiseNameFor } from '@/sports/baseball/players'
 import {
   candidatesFor,
@@ -534,8 +534,11 @@ export default function Game() {
                   <span className="cand-label">{rating.label}</span>
                 </span>
                 <StatColumns player={player} />
-                <span className={`cand-rating num ${ratingTier(rating.score)}`}>
-                  {rating.score}
+                <span className="cand-right">
+                  <span className={`cand-rating num ${ratingTier(rating.score)}`}>
+                    {rating.score}
+                  </span>
+                  <span className="cand-cost num">${playerCost(player)}M</span>
                 </span>
               </button>
             ))}
@@ -739,19 +742,50 @@ function Projection({ ruleset, state }: { ruleset: Ruleset; state: DraftState })
     return projectPartial(roster)
   }, [ruleset, state.picks])
 
+  const payroll = useMemo(() => {
+    const roster = state.picks.flatMap((p) => {
+      const player = ruleset.players.find((x) => x.id === p.playerId)
+      const slot = ruleset.slots.find((x) => x.id === p.slotId)
+      return player && slot ? [{ player, slot }] : []
+    })
+    return payrollOf(roster)
+  }, [ruleset, state.picks])
+
   const record = ruleset.benchmark.wins
   const scale = (wins: number) => Math.max(0, Math.min(100, ((wins - 50) / 112) * 100))
+  const over = payroll > PAYROLL_CAP
+  // The bar fills to the threshold; past it, it just reads as over.
+  const payrollPct = Math.min(100, (payroll / PAYROLL_CAP) * 100)
 
   return (
-    <div className="projection">
-      <span className="projection-label">Projected</span>
-      <span className="projection-bar">
-        <span style={{ width: `${scale(projected.wins)}%` }} />
-        <i style={{ left: `${scale(record)}%` }} title={`Record: ${record} wins`} />
-      </span>
-      <span className="projection-value num">
-        {projected.wins}-{ruleset.seasonGames - projected.wins}
-      </span>
+    <div className="meters">
+      <div className="projection">
+        <span className="projection-label">Projected</span>
+        <span className="projection-bar">
+          <span style={{ width: `${scale(projected.wins)}%` }} />
+          <i style={{ left: `${scale(record)}%` }} title={`Record: ${record} wins`} />
+        </span>
+        <span className="projection-value num">
+          {projected.wins}-{ruleset.seasonGames - projected.wins}
+        </span>
+      </div>
+
+      <div className="projection">
+        <span className="projection-label">Payroll</span>
+        <span className="projection-bar">
+          <span className={over ? 'over' : ''} style={{ width: `${payrollPct}%` }} />
+        </span>
+        <span className={`projection-value num${over ? ' over' : ''}`}>
+          ${Math.round(payroll)}M
+        </span>
+      </div>
+
+      {over && (
+        <p className="payroll-note">
+          ${Math.round(payroll - PAYROLL_CAP)}M over the ${PAYROLL_CAP}M threshold — your bench
+          and the back of the staff pay for it.
+        </p>
+      )}
     </div>
   )
 }

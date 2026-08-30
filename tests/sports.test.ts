@@ -2,7 +2,15 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
 import { baseball } from '../sports'
-import { baseRuns, normalizedBatting, normalizedEra, playerRating } from '../sports/baseball'
+import {
+  PAYROLL_CAP,
+  baseRuns,
+  normalizedBatting,
+  normalizedEra,
+  payrollOf,
+  playerCost,
+  playerRating,
+} from '../sports/baseball'
 import { eraLabelFor } from '../sports/baseball/players'
 
 /** The game ships as one sport; keep the loops so a second pack is a one-line change. */
@@ -419,4 +427,59 @@ test('no franchise and decade pair is too thin to be worth a spin', () => {
   for (const [key, n] of counts) {
     assert.ok(n >= 5, `${key} offers only ${n} players`)
   }
+})
+
+test('payroll prices talent steeply and is visible on every player', () => {
+  const priced = baseball.players.map((p) => ({ p, cost: playerCost(p), rating: playerRating(p).score }))
+
+  for (const { p, cost } of priced) {
+    assert.ok(cost > 0 && Number.isFinite(cost), `${p.name} has no cost`)
+  }
+
+  // Exponential, not linear: the gap between a star and a regular has to cost
+  // far more than the gap between a regular and a replacement, or stacking
+  // stars is simply the correct play.
+  const at = (score: number) =>
+    priced.filter((x) => x.rating === score).sort((a, b) => a.cost - b.cost)[0]?.cost
+  const avg = at(50)
+  const star = at(80)
+  const allTime = at(95)
+  assert.ok(avg && star && allTime)
+  assert.ok(star / avg > 3, `a star should cost several times an average player, got ${star}/${avg}`)
+  assert.ok(allTime / star > 1.8, `an all-time season should dwarf a star, got ${allTime}/${star}`)
+})
+
+test('overspending costs wins through the bench, not an arbitrary penalty', () => {
+  // Two rosters of identical players, priced under and over the threshold.
+  const cheap = baseball.players
+    .filter((p) => p.stats['era'] === undefined && playerRating(p).score < 45)
+    .slice(0, 9)
+  const stars = [...baseball.players]
+    .filter((p) => p.stats['era'] === undefined)
+    .sort((a, b) => playerRating(b).score - playerRating(a).score)
+    .slice(0, 9)
+
+  const lineupSlots = baseball.slots.filter((s) => s.group === 'Lineup')
+  const build = (players: typeof cheap) =>
+    lineupSlots.map((slot, i) => ({ player: players[i % players.length]!, slot }))
+
+  const thrifty = build(cheap)
+  const stacked = build(stars)
+
+  assert.ok(payrollOf(stacked) > PAYROLL_CAP, 'nine of the best should blow past the threshold')
+  assert.ok(payrollOf(thrifty) < PAYROLL_CAP, 'nine replacements should sit under it')
+
+  // The stacked roster still scores far more — the penalty is a real cost, not
+  // a thumb that makes spending pointless.
+  assert.ok(baseball.rate(stacked).offense > baseball.rate(thrifty).offense)
+
+  // And its depth is measurably worse: same drafted arms, worse staff, because
+  // there was nothing left to buy the back of the rotation with.
+  const arms = baseball.slots.filter((s) => s.group === 'Rotation' || s.group === 'Bullpen')
+  const anArm = baseball.players.find((p) => p.positions.includes('SP'))!
+  const withArms = (roster: typeof thrifty) => [...roster, ...arms.map((slot) => ({ player: anArm, slot }))]
+  assert.ok(
+    baseball.rate(withArms(stacked)).defense > baseball.rate(withArms(thrifty)).defense,
+    'a stacked payroll should concede more, through thinner depth',
+  )
 })

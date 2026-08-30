@@ -352,13 +352,25 @@ function rate(roster: RatedPlayer[]): TeamRating {
   const starterSlg = norm.reduce((s, n) => s + n.slg, 0) / size
   const starterHrRate = norm.reduce((s, n) => s + n.hrRate, 0) / size
 
-  // Blend in the bench that takes the other twelve percent of the season.
-  const blend = (starter: number, bench: number) =>
-    starter * STARTER_PA_SHARE + bench * (1 - STARTER_PA_SHARE)
-  const teamAvg = blend(starterAvg, BENCH.avg)
-  const teamObp = blend(starterObp, BENCH.obp)
-  const teamSlg = blend(starterSlg, BENCH.slg)
-  const teamHrRate = blend(starterHrRate, BENCH.hrRate)
+  // What the roster costs, and how thin that leaves everything it did not buy.
+  const payroll = payrollOf(roster)
+  const strain = payrollStrain(payroll)
+  const lerp = (from: number, to: number) => from + (to - from) * strain
+
+  // Blend in the bench that takes the other sixteen percent of the season. Its
+  // quality is what a stacked payroll actually costs you.
+  const bench = {
+    avg: lerp(BENCH.avg, STRAINED_BENCH.avg),
+    obp: lerp(BENCH.obp, STRAINED_BENCH.obp),
+    slg: lerp(BENCH.slg, STRAINED_BENCH.slg),
+    hrRate: lerp(BENCH.hrRate, STRAINED_BENCH.hrRate),
+  }
+  const blend = (starter: number, benchValue: number) =>
+    starter * STARTER_PA_SHARE + benchValue * (1 - STARTER_PA_SHARE)
+  const teamAvg = blend(starterAvg, bench.avg)
+  const teamObp = blend(starterObp, bench.obp)
+  const teamSlg = blend(starterSlg, bench.slg)
+  const teamHrRate = blend(starterHrRate, bench.hrRate)
 
   const runsScored = baseRuns(teamAvg, teamObp, teamSlg, teamHrRate, TEAM_AT_BATS)
   const offense = runsScored / SEASON_GAMES
@@ -374,10 +386,12 @@ function rate(roster: RatedPlayer[]): TeamRating {
 
   const rotationEra = meanEra(starters)
   const closerEra = meanEra(closers)
+  // The back of the rotation and middle relief are bought with what is left.
+  const undraftedEra = lerp(REF.era, STRAINED_STAFF_ERA)
   const staffEra =
     rotationEra * ROTATION_SHARE +
     closerEra * CLOSER_SHARE +
-    REF.era * UNDRAFTED_STAFF_SHARE
+    undraftedEra * UNDRAFTED_STAFF_SHARE
 
   // Gloves behind the staff. A DH is weighted zero, so parking a bat there is
   // free and parking one at shortstop is not.
@@ -397,7 +411,7 @@ function rate(roster: RatedPlayer[]): TeamRating {
       label: 'Lineup OBP',
       value: pct3(teamObp),
       z: clamp((teamObp - REF.obp) / 0.075),
-      detail: 'Era-adjusted, including the bench that plays 12% of the season',
+      detail: `Era-adjusted, including the bench that plays ${Math.round((1 - STARTER_PA_SHARE) * 100)}% of the season`,
     },
     {
       label: 'Lineup SLG',
@@ -422,6 +436,15 @@ function rate(roster: RatedPlayer[]): TeamRating {
       value: staffEra.toFixed(2),
       z: clamp((REF.era - staffEra) / 0.8),
       detail: `Rotation ${Math.round(ROTATION_SHARE * 100)}% of innings · closer ${Math.round(CLOSER_SHARE * 100)}% by leverage · rest league average`,
+    },
+    {
+      label: 'Payroll',
+      value: `$${Math.round(payroll)}M`,
+      z: clamp((PAYROLL_CAP - payroll) / 140),
+      detail:
+        payroll > PAYROLL_CAP
+          ? `$${Math.round(payroll - PAYROLL_CAP)}M over the threshold — the bench and the back of the staff pay for it`
+          : `$${Math.round(PAYROLL_CAP - payroll)}M under the threshold, so the depth behind these thirteen holds up`,
     },
     {
       label: 'Defence',
@@ -505,6 +528,73 @@ export function projectPartial(picks: RatedPlayer[]): {
     Math.pow(scored, exponent) / (Math.pow(scored, exponent) + Math.pow(allowed, exponent))
 
   return { wins: Math.round(winPct * SEASON_GAMES), rating }
+}
+
+/**
+ * PAYROLL
+ * -------
+ * The reason a draft was easy had nothing to do with how many positions it
+ * had. Going from nine slots to thirteen made the game *easier*, because every
+ * extra slot is another chance to take the best player on the board. The real
+ * problem was that nothing stopped you stacking thirteen stars.
+ *
+ * Baseball already has the mechanism that stops that in life: money. Every
+ * player carries a salary, and a roster has a competitive-balance threshold.
+ * Going over it is allowed — a hard cap would let a bad spin strand you with
+ * slots you cannot fill — but it is paid for the way real clubs pay for it.
+ * A club that spends everything on its starters has nothing left for the bench
+ * and the back of the staff, and those are exactly the two inputs the run model
+ * already depends on.
+ *
+ * So the penalty is not a number subtracted at the end. It degrades the
+ * replacement players who take 16% of the plate appearances and 51% of the
+ * innings, and the season simulation feels it on its own.
+ */
+
+/**
+ * Competitive-balance threshold, in millions.
+ *
+ * Set from measurement, not from the real MLB figure. A player who simply
+ * takes the best card every time lands around $125M, and one who shops for
+ * value lands near $95M, so the threshold sits between them: blind
+ * star-stacking goes over and pays for it, and a thoughtful draft does not.
+ */
+export const PAYROLL_CAP = 110
+
+/** Where the bench bottoms out when a roster is spending everything. */
+const STRAINED_BENCH = { avg: 0.208, obp: 0.258, slg: 0.312, hrRate: 0.016 }
+const STRAINED_STAFF_ERA = 5.15
+
+/**
+ * Overage at which depth is as bad as it gets.
+ *
+ * Tuned until managing the payroll actually beats ignoring it. At a wider
+ * range the arithmetic still favoured stacking stars and eating the penalty,
+ * which would have made the threshold decoration rather than a decision.
+ */
+const STRAIN_RANGE = 55
+
+/**
+ * What a player costs, in millions.
+ *
+ * Exponential in the rating, because that is how the market actually prices
+ * talent: the gap between a good regular and a star costs far more than the
+ * gap between a replacement and a regular. A league-average player runs about
+ * $3M, a star near $19M, an all-time season past $40M.
+ */
+export function playerCost(player: Player): number {
+  const { score } = playerRating(player)
+  return Math.max(0.8, Math.round(Math.exp((score - 30) / 18) * 10) / 10)
+}
+
+/** Total salary of a roster, in millions. */
+export function payrollOf(roster: RatedPlayer[]): number {
+  return roster.reduce((total, entry) => total + playerCost(entry.player), 0)
+}
+
+/** 0 when under the threshold, 1 when depth is as thin as it gets. */
+function payrollStrain(payroll: number): number {
+  return Math.max(0, Math.min(1, (payroll - PAYROLL_CAP) / STRAIN_RANGE))
 }
 
 export const baseball: Ruleset = {

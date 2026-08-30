@@ -56,6 +56,37 @@ There is a fourth, smaller one that matters more than it sounds: **nobody plays
 162 games.** Real regulars start about 143 of them, so the drafted nine take 88%
 of the plate appearances and a replacement-level bench takes the rest.
 
+## Payroll
+
+Every player carries a salary and a roster has a $110M competitive-balance
+threshold. Going over is allowed — a hard cap would let a bad spin strand you
+with slots you cannot fill — but it is paid for the way real clubs pay for it.
+A club that spends everything on its starters has nothing left for the bench
+and the back of the staff, so the penalty is not a number subtracted at the
+end: it degrades the replacement players who take 16% of the plate appearances
+and 51% of the innings, and the simulation feels it on its own.
+
+This exists because position count is not a difficulty lever. Going from nine
+slots to thirteen made the game *easier* — every extra slot is another chance
+to take the best player on the board. What actually made drafts easy was that
+nothing stopped you stacking thirteen stars, and baseball already has the
+mechanism that stops that in life.
+
+Costs are exponential in the rating, because that is how the market prices
+talent: an average player runs about $3M, a star near $16M, an all-time season
+past $45M. Both the threshold and the penalty curve were set by measurement
+rather than by the real MLB figure, tuned until managing the payroll was worth
+as much as ignoring it:
+
+| Approach | Median wins | Payroll | Beats 116 |
+|---|---|---|---|
+| Take the best card every time | 106 | $125M | 3.3% |
+| Draft to the threshold | 103 | $109M | 3.7% |
+
+Neither dominates, which is the point — the threshold is a decision rather than
+decoration. Before payroll existed, taking the best card every time beat the
+all-time record 18.7% of the time.
+
 ## Difficulty
 
 The point of the game is that a perfect season is out of reach and the real
@@ -68,10 +99,9 @@ by the 1906 Cubs and 2001 Mariners. As tuned:
 
 | How you play | Median wins | Beats 116 |
 |---|---|---|
-| Taking whoever | 89 | 0% |
-| Middling picks | 88 | 0.3% |
-| Picking the best card each spin | 109 | 14% |
-| Exhaustive optimizer | 110 | 15% |
+| Picking the best card each spin | 103 | 2.3% |
+| Drafting to the payroll threshold | 103 | 3.7% |
+| Ignoring payroll entirely | 106 | 3.3% |
 
 Beating the all-time record is a real achievement and a real brag. Going 162-0
 is the ghost you chase. A test guards this curve, so a future change that makes

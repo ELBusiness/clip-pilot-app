@@ -605,6 +605,49 @@ button {
 
 /* ---------- Live projection ---------- */
 
+.meters {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.meters .projection {
+  margin-bottom: 0;
+}
+
+.projection-bar span.over {
+  background: linear-gradient(90deg, var(--accent), var(--bad));
+}
+
+.projection-value.over {
+  color: var(--bad);
+}
+
+.payroll-note {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-faint);
+  padding: 0 2px;
+}
+
+/* The rating and what it costs, stacked so the card stays one row. */
+.cand-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  min-width: 40px;
+}
+
+.cand-cost {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+  margin-top: 1px;
+  white-space: nowrap;
+}
+
 .projection {
   display: flex;
   align-items: center;
