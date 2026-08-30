@@ -113,24 +113,75 @@ export function eligibleCombos(ruleset: Ruleset, state: DraftState): Combo[] {
  * the player deliberated or how many candidate lists the UI rendered.
  */
 export function spin(ruleset: Ruleset, state: DraftState): DraftState {
-  const combos = eligibleCombos(ruleset, state)
-  if (combos.length === 0) {
+  return drawFrom(state, eligibleCombos(ruleset, state), 'all')
+}
+
+/** Pick a combo out of a pool on a stream that is a function of the draw only. */
+function drawFrom(state: DraftState, pool: Combo[], tag: string): DraftState {
+  if (pool.length === 0) {
     return { ...state, spin: null, status: 'complete' }
   }
-
-  const rng = createRng(deriveSeed(state.seed, `spin:${state.round}:${state.rerolls}`))
-  const combo = rng.pick(combos)
-
-  return { ...state, spin: combo, status: 'picking' }
+  const rng = createRng(deriveSeed(state.seed, `spin:${state.round}:${state.rerolls}:${tag}`))
+  return { ...state, spin: rng.pick(pool), status: 'picking' }
 }
 
 /**
- * Burn a re-spin. Consuming a reroll changes the derived stream, so the new
- * combo is genuinely different rather than a repeat of the same draw.
+ * Which half of the reel a re-spin turns.
+ *
+ * Re-spinning the whole combo throws away the good half with the bad. Holding
+ * one reel and turning the other is the decision the genre actually wants: a
+ * loaded franchise in the wrong decade is a fixable problem, and being able to
+ * say which half was wrong is more interesting than rolling the dice again.
  */
-export function reroll(ruleset: Ruleset, state: DraftState): DraftState {
+export type RerollAxis = 'team' | 'era' | 'both'
+
+/**
+ * Combos a re-spin on this axis could land on. Excludes the current combo —
+ * a re-spin that can only return what you already have is not a re-spin, and
+ * the control is disabled rather than spending the budget on nothing.
+ */
+export function rerollOptions(
+  ruleset: Ruleset,
+  state: DraftState,
+  axis: RerollAxis,
+): Combo[] {
+  const current = state.spin
+  const all = eligibleCombos(ruleset, state)
+  if (!current) return all
+
+  switch (axis) {
+    case 'team':
+      // Same decade, a different club in it.
+      return all.filter((c) => c.eraId === current.eraId && c.franchiseId !== current.franchiseId)
+    case 'era':
+      // Same club, a different decade of it.
+      return all.filter((c) => c.franchiseId === current.franchiseId && c.eraId !== current.eraId)
+    case 'both':
+      return all.filter(
+        (c) => c.franchiseId !== current.franchiseId || c.eraId !== current.eraId,
+      )
+  }
+}
+
+/**
+ * Burn a re-spin on one axis. Consuming a reroll changes the derived stream,
+ * so the new combo is genuinely different rather than a repeat of the draw.
+ *
+ * The budget is per run, not per axis: a targeted re-spin is the stronger move,
+ * so letting you choose where to aim it is the whole change — the number of
+ * times you may aim it is deliberately unchanged.
+ */
+export function reroll(
+  ruleset: Ruleset,
+  state: DraftState,
+  axis: RerollAxis = 'both',
+): DraftState {
   if (state.rerolls <= 0 || state.status !== 'picking') return state
-  return spin(ruleset, { ...state, rerolls: state.rerolls - 1 })
+  const next = { ...state, rerolls: state.rerolls - 1 }
+  const pool = rerollOptions(ruleset, state, axis)
+  // Nothing else to land on: keep the combo and, importantly, the re-spin.
+  if (pool.length === 0) return state
+  return drawFrom(next, pool, axis)
 }
 
 /** Commit a pick. Returns the state unchanged if the pick is not legal. */

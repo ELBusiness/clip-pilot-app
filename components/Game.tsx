@@ -20,6 +20,8 @@ import {
   openSlots,
   pick as commitPick,
   reroll,
+  rerollOptions,
+  type RerollAxis,
   slotsForPlayer,
   spin,
   type DraftState,
@@ -177,7 +179,7 @@ export default function Game() {
    * animation is interrupted.
    */
   const animateTo = useCallback(
-    (next: DraftState) => {
+    (next: DraftState, axis: RerollAxis = 'both') => {
       clearTimers()
       const pool = eligibleCombos(ruleset, { ...next, spin: null })
       if (pool.length === 0 || !next.spin) {
@@ -188,17 +190,38 @@ export default function Game() {
       const teams = [...new Set(pool.map((c) => c.franchiseId))]
       const eras = [...new Set(pool.map((c) => c.eraId))]
 
+      // A targeted re-spin turns one reel and holds the other, which is the
+      // whole point of aiming it — watching the half you kept cycle back to
+      // itself would say the opposite of what happened.
+      const turnTeam = axis !== 'era'
+      const turnEra = axis !== 'team'
+
       setSpinning(true)
-      setTeamSettled(false)
-      setEraSettled(false)
+      setTeamSettled(!turnTeam)
+      setEraSettled(!turnEra)
       setFilter('all')
       setQuery('')
       void resume()
 
       // The outcome is already decided; this only plays it out, so a seed
       // replays identically however the animation is interrupted.
-      const teamTimes = tickSchedule(TEAM_TICKS)
-      const eraTimes = tickSchedule(ERA_TICKS, 2)
+      const teamTimes = turnTeam ? tickSchedule(TEAM_TICKS) : []
+      const eraTimes = turnEra ? tickSchedule(ERA_TICKS, 2) : []
+      // Whichever reel stops last hands over to the pick list.
+      const lastTeam = teamTimes[teamTimes.length - 1] ?? -1
+      const lastEra = eraTimes[eraTimes.length - 1] ?? -1
+      const handoff = lastEra >= lastTeam ? 'era' : 'team'
+
+      const settle = () => {
+        setDisplay(next.spin)
+        setSpinning(false)
+        // The pick list appears only once the reels have stopped, so the spin
+        // keeps its own beat instead of being scenery behind a list.
+        setPhase('pick')
+      }
+
+      if (!turnTeam) setTeamDisplay(next.spin.franchiseId)
+      if (!turnEra) setEraDisplay(next.spin.eraId)
 
       teamTimes.forEach((at, i) => {
         const last = i === teamTimes.length - 1
@@ -209,6 +232,7 @@ export default function Game() {
               setTeamSettled(true)
               playLand()
               vibrate(18)
+              if (handoff === 'team') settle()
             } else {
               playTick()
             }
@@ -225,11 +249,7 @@ export default function Game() {
               setEraSettled(true)
               playLand()
               vibrate([22, 40, 22])
-              setDisplay(next.spin)
-              setSpinning(false)
-              // The pick list appears only once both reels have stopped, so the
-              // spin keeps its own beat instead of being scenery behind a list.
-              setPhase('pick')
+              if (handoff === 'era') settle()
             } else {
               playTick()
             }
@@ -335,12 +355,15 @@ export default function Game() {
     }
   }
 
-  const onReroll = () => {
+  const onReroll = (axis: RerollAxis) => {
     if (!state || state.rerolls <= 0) return
-    const next = reroll(ruleset, state)
+    const next = reroll(ruleset, state, axis)
+    // reroll returns the state untouched when the axis has nowhere else to go,
+    // which also means the budget was not spent.
+    if (next === state) return
     setPending(null)
     setState(next)
-    animateTo(next)
+    animateTo(next, axis)
   }
 
   /** The SPIN button: the reel is already decided, this plays it out. */
@@ -410,6 +433,18 @@ export default function Game() {
     if (!state) return new Map<string, Outlook>()
     return positionOutlook(ruleset.slots, ruleset.players, new Set(state.picks.map((p) => p.playerId)))
   }, [ruleset, state?.picks])
+
+  /**
+   * Whether each reel has anywhere else to land. A re-spin that can only
+   * return the combo you already have is disabled rather than sold.
+   */
+  const canRespin = useMemo(() => {
+    if (!state || state.rerolls <= 0) return { team: false, era: false }
+    return {
+      team: rerollOptions(ruleset, state, 'team').length > 0,
+      era: rerollOptions(ruleset, state, 'era').length > 0,
+    }
+  }, [ruleset, state])
 
   /** Slots the selected player could fill. Empty when nobody is selected. */
   const pendingSlots = useMemo(
@@ -554,11 +589,40 @@ export default function Game() {
               {franchise ? franchiseNameFor(franchise, shownEraId) : '—'}
             </span>
             <span className="pill era">{eraLabel}</span>
-            {mode === 'free' && (
-              <button className="respin" onClick={onReroll} disabled={state.rerolls <= 0}>
-                {state.rerolls > 0 ? 'Re-spin' : 'No re-spins'}
-              </button>
-            )}
+            {/* Two re-spins, one per reel, the way 82-0 splits them. Keeping a
+                loaded franchise and turning only the decade is the move a
+                single whole-combo re-spin never let you make. */}
+            {mode === 'free' &&
+              (state.rerolls > 0 ? (
+                <span className="respins">
+                  <button
+                    className="respin"
+                    onClick={() => onReroll('team')}
+                    disabled={!canRespin.team}
+                    title={
+                      canRespin.team
+                        ? 'Keep the decade, spin for another club'
+                        : 'No other club in this decade can fill an open spot'
+                    }
+                  >
+                    <Recycle /> Team
+                  </button>
+                  <button
+                    className="respin"
+                    onClick={() => onReroll('era')}
+                    disabled={!canRespin.era}
+                    title={
+                      canRespin.era
+                        ? 'Keep the club, spin for another decade'
+                        : 'No other decade of this club can fill an open spot'
+                    }
+                  >
+                    <Recycle /> Era
+                  </button>
+                </span>
+              ) : (
+                <span className="respin spent">No re-spins</span>
+              ))}
           </div>
 
           <div className="filters">
@@ -715,6 +779,11 @@ function SettingsSheet({
           close, so those are the slots you fill with whoever is left over, not
           ones to spend a good player on.
         </p>
+        <p className="factor-detail" style={{ marginBottom: 16 }}>
+          You get <em>one</em> re-spin a run, and you choose which reel it turns.
+          A loaded club in the wrong decade only needs the decade turned — keep
+          the club and spin the era, and the other half stays exactly as it is.
+        </p>
 
         <label className="toggle-row">
           <span>Sounds</span>
@@ -826,6 +895,23 @@ function Dock({
         )
       })}
     </div>
+  )
+}
+
+/** The re-spin glyph: a loop with an arrowhead, drawn so it scales with type. */
+function Recycle() {
+  return (
+    <svg viewBox="0 0 16 16" className="respin-glyph" aria-hidden="true">
+      <path
+        d="M3 8a5 5 0 0 1 8.5-3.5M13 8a5 5 0 0 1-8.5 3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path d="M11.5 1.8v2.9H8.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4.5 14.2v-2.9h2.9" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }
 

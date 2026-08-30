@@ -419,10 +419,29 @@ than just showing their score. You do not beat a number, you beat a specific
 run. The season seed is derived from the roster too, so re-simulating cannot be
 used to reroll a bad result.
 
-**One re-spin per run.** A scarce resource turns a bad spin into a decision.
+**One re-spin per run, and you aim it.** Two controls, one per reel, the way
+82-0 splits them: turn the club and hold the decade, or turn the decade and
+hold the club. A loaded franchise in the wrong era is a fixable problem, and
+saying which half was wrong is a better decision than rolling both again. Only
+the reel you turned animates — watching the half you kept cycle back to itself
+would say the opposite of what happened.
 
-**Mobile-first, not desktop-shrunk.** The draft never scrolls the page, tap
-targets clear 44px, and the type scale is viewport-driven.
+The budget is deliberately still one. A targeted re-spin is the stronger move,
+so splitting the control gives you a choice of where to aim it, not more shots;
+a control with nowhere else to land is disabled rather than sold, and costs
+nothing if somehow pressed. The daily still runs with none.
+
+**Mobile-first, not desktop-shrunk.** The draft never scrolls the page and the
+type scale is viewport-driven.
+
+Tap targets get the same treatment. Thirteen positions across a phone is a 27px
+cell — fine to read, far too small to hit without mistakes. But the strip is
+*only* ever tapped while a player is being placed, and only the slots he can
+legally take are tappable at all. So during placement those slots take the row
+over and the rest shrink to markers: measured in the browser, a target goes
+from 27×34 to **49×48** with four positions eligible, and larger with fewer.
+The nine you cannot press stop competing for the space, and the label grows
+with the cell so a big target does not carry small type.
 
 **Static.** The game prerenders to static HTML with no server calls, so hosting
 is free and a viral spike costs nothing. The only state that outlives a run is

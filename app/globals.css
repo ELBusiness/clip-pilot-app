@@ -1064,20 +1064,30 @@ button {
  * previous screen.
  */
 .dock {
-  display: grid;
-  grid-template-columns: repeat(13, 1fr);
+  display: flex;
   gap: 3px;
   margin-bottom: 10px;
 }
 
 .dock-slot {
+  flex: 1 1 0;
   border-radius: 3px;
   border: 1px solid var(--rule);
   background: var(--panel);
-  padding: 4px 1px 3px;
+  padding: 5px 1px 4px;
   text-align: center;
   min-width: 0;
   overflow: hidden;
+  /* Thirteen across a phone is a 27px cell. That is fine to read and far too
+     small to hit, so the width is not fixed: while a player is being placed
+     the slots he can take take the row over. See .dock.placing below. */
+  transition: flex-grow 0.18s ease, flex-basis 0.18s ease, opacity 0.18s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-slot {
+    transition: none;
+  }
 }
 
 .dock-slot.filled {
@@ -1096,22 +1106,56 @@ button {
   color: var(--team-fg, var(--safe));
 }
 
-/* While a player is waiting to be placed, the positions he can take become
-   the target — lit, tappable, and everything else dimmed out of the way. */
+/*
+ * While a player is waiting to be placed, the positions he can take become the
+ * target — lit, tappable, and everything else dimmed out of the way.
+ *
+ * They also grow. The strip is only ever tapped during placement, and only the
+ * open slots are tappable at all, so there is no reason for the other nine to
+ * hold a third of the row while the four you might hit are 27px wide. Shrunk
+ * to markers, they leave the open slots at roughly 60px each — a real target,
+ * and one that cannot be mistaken for its neighbour.
+ */
 .dock.placing .dock-slot {
-  opacity: 0.3;
+  opacity: 0.32;
+  flex: 0 0 14px;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .dock.placing .dock-slot.open {
   opacity: 1;
+  flex: 1 1 0;
+  padding: 8px 2px 7px;
   border-color: var(--bulb);
   background: color-mix(in srgb, var(--bulb) 15%, var(--panel-hi));
   animation: dock-pulse 1.5s ease-in-out infinite;
 }
 
-.dock.placing .dock-slot.open .dock-pos,
+/* A 14px marker has no room for a label, and a clipped half-letter reads as
+   breakage. The position code goes; the cell stays as a place-marker so the
+   row does not visibly lose slots. */
+.dock.placing .dock-slot:not(.open) .dock-pos,
+.dock.placing .dock-slot:not(.open) .dock-rating {
+  visibility: hidden;
+}
+
+/* The label grows with the cell: a 60px target carrying 9.5px type looks like
+   a mistake, and the position code is the thing being aimed at. */
+.dock.placing .dock-slot.open {
+  min-height: 46px;
+}
+
+.dock.placing .dock-slot.open .dock-pos {
+  color: var(--bulb);
+  font-size: 14px;
+  letter-spacing: 0.05em;
+}
+
 .dock.placing .dock-slot.open .dock-rating {
   color: var(--bulb);
+  font-size: 13px;
+  margin-top: 1px;
 }
 
 @keyframes dock-pulse {
@@ -1189,6 +1233,10 @@ button {
   align-items: center;
   gap: 7px;
   margin-bottom: 10px;
+  /* A long club name plus a decade plus two re-spin buttons does not fit one
+     line on a small phone, so the controls drop to a second row rather than
+     squeezing the club name to an ellipsis. */
+  flex-wrap: wrap;
 }
 
 .pill {
@@ -1219,19 +1267,49 @@ button {
   flex-shrink: 0;
 }
 
-.pick-head .respin {
+/* One re-spin per reel, as 82-0 splits them. They sit together at the end of
+   the header so they read as a pair of controls rather than two loose buttons. */
+.respins {
+  display: flex;
+  gap: 6px;
   margin-left: auto;
   flex-shrink: 0;
+}
+
+.pick-head .respin {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
   font-size: 12.5px;
-  font-weight: 600;
-  padding: 6px 12px;
+  font-weight: 650;
+  padding: 7px 11px;
   border-radius: 3px;
   border: 1px solid var(--rule-hi);
   color: var(--chalk-dim);
+  /* These are the only header controls anyone taps, so they clear the 44px
+     guidance on the axis a thumb actually misses. */
+  min-height: 34px;
+}
+
+.pick-head .respin:not(:disabled):active {
+  border-color: var(--bulb);
+  color: var(--bulb);
 }
 
 .pick-head .respin:disabled {
   opacity: 0.35;
+}
+
+.pick-head .respin.spent {
+  margin-left: auto;
+  opacity: 0.5;
+}
+
+.respin-glyph {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
 }
 
 .filters {

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { createRng, deriveSeed, hashSeed } from '../engine/rng'
 import { pythagoreanWinPct, pythagenpatExponent, simulateSeason } from '../engine/season'
 import { decodeRun, encodeRun, seedCode, dailySeed } from '../engine/share'
-import { createDraft, spin, pick, candidatesFor, slotsForPlayer, eligibleCombos, openSlots, reroll } from '../engine/draft'
+import { createDraft, spin, pick, candidatesFor, slotsForPlayer, eligibleCombos, openSlots, reroll, rerollOptions } from '../engine/draft'
 import { runSeason } from '../engine/run'
 import { baseball } from '../sports'
 
@@ -181,4 +181,80 @@ test('rerolls are limited and change the draw', () => {
 
   // Out of rerolls: further attempts are no-ops rather than free spins.
   assert.equal(reroll(ruleset, rerolled), rerolled)
+})
+
+test('a targeted re-spin turns one reel and holds the other', () => {
+  const ruleset = baseball
+
+  // Scan seeds so the assertion runs on draws where both axes actually have
+  // somewhere else to go, rather than passing by accident on a thin one.
+  let checkedTeam = 0
+  let checkedEra = 0
+
+  for (let seed = 1; seed <= 60; seed += 1) {
+    const state = spin(ruleset, createDraft(ruleset, seed))
+    assert.ok(state.spin)
+
+    if (rerollOptions(ruleset, state, 'team').length > 0) {
+      const next = reroll(ruleset, state, 'team')
+      assert.equal(next.spin!.eraId, state.spin!.eraId, `seed ${seed}: the decade should be held`)
+      assert.notEqual(next.spin!.franchiseId, state.spin!.franchiseId, `seed ${seed}: the club should change`)
+      assert.equal(next.rerolls, state.rerolls - 1)
+      checkedTeam += 1
+    }
+
+    if (rerollOptions(ruleset, state, 'era').length > 0) {
+      const next = reroll(ruleset, state, 'era')
+      assert.equal(next.spin!.franchiseId, state.spin!.franchiseId, `seed ${seed}: the club should be held`)
+      assert.notEqual(next.spin!.eraId, state.spin!.eraId, `seed ${seed}: the decade should change`)
+      assert.equal(next.rerolls, state.rerolls - 1)
+      checkedEra += 1
+    }
+  }
+
+  assert.ok(checkedTeam > 30, `only ${checkedTeam} seeds could re-spin the club`)
+  assert.ok(checkedEra > 30, `only ${checkedEra} seeds could re-spin the decade`)
+})
+
+test('a re-spin with nowhere to land costs nothing', () => {
+  const ruleset = baseball
+  const state = spin(ruleset, createDraft(ruleset, 7))
+
+  // Force the case by pretending the axis is empty: a franchise/era pair that
+  // is the only one of its kind cannot be re-spun on that axis, and the run
+  // must keep the re-spin rather than spend it on a no-op.
+  const lonely = { ...state, spin: { franchiseId: 'NLG', eraId: 'e1920' } }
+  assert.equal(rerollOptions(ruleset, lonely, 'era').length, 0, 'the Negro Leagues sit in one decade')
+
+  const after = reroll(ruleset, lonely, 'era')
+  assert.equal(after, lonely, 'the state should come back untouched')
+  assert.equal(after.rerolls, lonely.rerolls, 'the budget should be intact')
+})
+
+test('the re-spin budget is one per run however it is aimed', () => {
+  const ruleset = baseball
+  const state = spin(ruleset, createDraft(ruleset, 11))
+  assert.equal(state.rerolls, 1)
+
+  // Splitting the control gives you a choice of where to aim, not more shots.
+  const afterTeam = reroll(ruleset, state, 'team')
+  assert.equal(afterTeam.rerolls, 0)
+  assert.equal(reroll(ruleset, afterTeam, 'era'), afterTeam, 'the second axis must not be free')
+})
+
+test('a targeted re-spin replays identically from the same seed', () => {
+  const ruleset = baseball
+  for (const axis of ['team', 'era', 'both'] as const) {
+    const a = reroll(ruleset, spin(ruleset, createDraft(ruleset, 4242)), axis)
+    const b = reroll(ruleset, spin(ruleset, createDraft(ruleset, 4242)), axis)
+    assert.deepEqual(a.spin, b.spin, `${axis} should be reproducible`)
+  }
+
+  // And the two axes are genuinely different streams, not the same draw
+  // relabelled — otherwise aiming the re-spin would be cosmetic.
+  const base = spin(ruleset, createDraft(ruleset, 4242))
+  assert.notDeepEqual(
+    reroll(ruleset, base, 'team').spin,
+    reroll(ruleset, base, 'era').spin,
+  )
 })
