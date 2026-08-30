@@ -141,13 +141,19 @@ Baseball's stat lines are unreadable to a newcomer. `.276/.346/.362` and
 the player is any good — a 3.41 ERA was extraordinary in 1968 and ordinary in
 1999.
 
-So every player carries a **0-99 rating** and a plain-English label, and the
-pick list is sorted best-first. The rating is not a separate scale invented for
-the card: it is the player's **runs above what a league-average player produces
-over a season**, which is the exact currency the season simulation runs on. A
-bat's hitting and fielding and an arm's run prevention all reduce to it, which
-makes them directly comparable and makes the number honest — it ranks players
-by precisely what the game rewards.
+So every player carries a **0-99 rating** and the pick list is sorted
+best-first. The rating is not a separate scale invented for the card: it is the
+player's **runs above what a league-average player produces over a season**,
+which is the exact currency the season simulation runs on. A bat's hitting and
+fielding and an arm's run prevention all reduce to it, which makes them directly
+comparable and makes the number honest — it ranks players by precisely what the
+game rewards.
+
+That number does the whole job, so it does the job alone. Cards used to carry a
+written grade beside it too — "Ace SP", "Big bat", "Weak bat" — which said
+nothing the rating had not already said more precisely, in more words, on every
+row. One number, three stats, a price. The only words a card gets now are the
+scarcity flag, because that is the one thing the rating cannot tell you.
 
 50 is a league-average regular. The pool's median is 53. Babe Ruth rates 99;
 Bill Bergen, the standard example of the worst hitter in major league history,
@@ -305,8 +311,8 @@ leave one surface reading against another's ground.
 | **Slate** | Colour out of the way | cool neutral |
 
 Contrast is measured rather than eyeballed. Every palette was checked with WCAG
-ratios across body text, reel type, meter labels, player names, descriptors, and
-the accent pairing behind the SPIN button. The first pass found secondary text
+ratios across body text, reel type, meter labels, player names, and the accent
+pairing behind the SPIN button. The first pass found secondary text
 between 3.8 and 4.5 in all four — under AA — so `--chalk-faint` was lifted in
 each, and Day's accent was deepened from `#b4661a` to `#9c5514` to clear 4.5
 outright rather than resting on the large-text allowance. Nothing now sits below

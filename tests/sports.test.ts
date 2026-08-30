@@ -313,11 +313,15 @@ test('player ratings rank the way a fan would expect', () => {
   )
 })
 
-test('every player carries a plain-English label', () => {
+test('every player carries a rating on the 0-99 scale', () => {
+  // The card carries one number and no adjectives, so that number has to be
+  // sound for all 4,712 of them — not merely for the ones a spin happens to
+  // surface while someone is looking.
   for (const player of baseball.players) {
-    const { label, score } = playerRating(player)
-    assert.ok(label.length > 0, `${player.name} has no label`)
+    const { score, runs } = playerRating(player)
     assert.ok(Number.isInteger(score), `${player.name} has a non-integer rating`)
+    assert.ok(score >= 1 && score <= 99, `${player.name} rates ${score}, off the scale`)
+    assert.ok(Number.isFinite(runs), `${player.name} has no runs-above-average`)
   }
 })
 

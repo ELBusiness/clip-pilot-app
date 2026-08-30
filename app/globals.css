@@ -1482,24 +1482,30 @@ button {
   margin-top: 0;
 }
 
-/* Plain-English read on the player, for anyone who does not parse slash lines. */
+/* Holds the scarcity flag — the only words a card carries besides the name. */
 .cand-label {
   display: flex;
   align-items: baseline;
-  gap: 5px;
   font-size: 11px;
-  color: var(--chalk-faint);
   margin-top: 2px;
-  font-weight: 500;
   min-width: 0;
 }
 
-/* This is the half that gives way when the row runs out of room. */
-.cand-read {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
+/*
+ * Only some cards in a list have something to say, and a row that is taller
+ * than its neighbours because of it reads as broken. So when any card in the
+ * list carries a flag, every card in that list reserves the line — and when
+ * none do, the whole list stays on one line rather than padding every row with
+ * a blank it does not need.
+ */
+.candidates.two-line .cand-body::after {
+  content: '';
+  display: block;
+  height: 15px;
+}
+
+.candidates.two-line .cand-body:has(.cand-label)::after {
+  display: none;
 }
 
 /* The rating is the anchor of the card: one number, always in the same place,
@@ -1526,20 +1532,14 @@ button {
 }
 
 /* Said only when a player is well clear of what that position is still paying.
-   It is the one piece of advice the draft gives, so it gets the accent and the
-   fixed width — the stat read beside it truncates instead. */
+   It is the one piece of advice the draft gives, and now the only words on a
+   card besides the name, so it gets the accent. */
 .cand-label .edge {
   flex-shrink: 0;
   font-style: normal;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--bulb);
-}
-
-.cand-label .edge + .cand-read::before {
-  content: '\00b7';
-  margin-right: 5px;
-  color: var(--rule-hi);
 }
 
 .cand-rating.poor {

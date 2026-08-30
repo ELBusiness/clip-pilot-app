@@ -272,8 +272,6 @@ export interface PlayerRating {
   score: number
   /** Runs above average across a season. */
   runs: number
-  /** Plain-English summary for someone who does not read slash lines. */
-  label: string
 }
 
 /** Innings a drafted starter and closer are credited with. */
@@ -295,11 +293,7 @@ export function playerRating(player: Player): PlayerRating {
     const innings = reliever ? CLOSER_INNINGS * CLOSER_LEVERAGE : STARTER_INNINGS
     const runs = ((REF.era - era) * innings) / 9
 
-    return {
-      score: toScore(runs),
-      runs,
-      label: describeArm(era, reliever),
-    }
+    return { score: toScore(runs), runs }
   }
 
   const n = normalizedBatting(player)
@@ -310,33 +304,13 @@ export function playerRating(player: Player): PlayerRating {
   const glove = (player.stats['def'] ?? 0) * 0.85 * RUNS_PER_DEF_SD
   const runs = bat + glove
 
-  return { score: toScore(runs), runs, label: describeBat(bat, player.stats['def'] ?? 0) }
+  return { score: toScore(runs), runs }
 }
 
 function toScore(runs: number): number {
   return Math.max(1, Math.min(99, Math.round(50 + runs * RATING_PER_RUN)))
 }
 
-function describeArm(era: number, reliever: boolean): string {
-  // Short enough to sit beside three stat columns on a phone. The position
-  // badge already says SP or RP, so the label only has to carry the grade.
-  const role = reliever ? 'RP' : 'SP'
-  if (era <= 2.9) return `Ace ${role}`
-  if (era <= 3.5) return `Strong ${role}`
-  if (era <= 4.2) return `Solid ${role}`
-  return `Back-end ${role}`
-}
-
-function describeBat(batRuns: number, def: number): string {
-  const glove = def >= 0.7 ? '+glove' : def <= -0.7 ? '-glove' : null
-  const stick =
-    batRuns >= 30 ? 'Superstar bat'
-      : batRuns >= 15 ? 'Big bat'
-        : batRuns >= 3 ? 'Solid bat'
-          : batRuns >= -8 ? 'Light bat'
-            : 'Weak bat'
-  return glove ? `${stick} · ${glove}` : stick
-}
 
 function rate(roster: RatedPlayer[]): TeamRating {
   const batters = roster.filter((r) => !isPitcher(r.player.stats))

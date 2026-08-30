@@ -665,7 +665,7 @@ export default function Game() {
             )}
           </p>
 
-          <div className="candidates">
+          <div className={`candidates${candidates.some((c) => c.edge >= 12) ? ' two-line' : ''}`}>
             {candidates.map(({ player, rating, edge, edgeSlot }) => (
               <button
                 key={player.id}
@@ -677,17 +677,15 @@ export default function Game() {
                 </span>
                 <span className="cand-body">
                   <span className="cand-name">{player.name}</span>
-                  {/* The scarcity flag leads, because it is the one line here
-                      that tells you what to do. The stat read is allowed to
-                      truncate behind it; this is not. */}
-                  <span className="cand-label">
-                    {edge >= 12 && edgeSlot && (
+                  {/* The only second line a card gets. The stats and the rating
+                      say what the player is; this says what to do about him. */}
+                  {edge >= 12 && edgeSlot && (
+                    <span className="cand-label">
                       <em className="edge">
                         +{Math.round(edge)} at {edgeSlot}
                       </em>
-                    )}
-                    <span className="cand-read">{rating.label}</span>
-                  </span>
+                    </span>
+                  )}
                 </span>
                 <StatColumns player={player} />
                 <span className="cand-right">
