@@ -2,7 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { baseball } from '@/sports'
-import { PAYROLL_CAP, payrollOf, playerCost, playerRating, projectPartial } from '@/sports/baseball'
+import {
+  PAYROLL_CAP,
+  payrollOf,
+  playerCost,
+  playerRating,
+  positionOutlook,
+  projectPartial,
+  scarcityEdge,
+  type Outlook,
+} from '@/sports/baseball'
 import { eraLabelFor, franchiseNameFor } from '@/sports/baseball/players'
 import {
   candidatesFor,
@@ -16,6 +25,7 @@ import {
   type DraftState,
 } from '@/engine/draft'
 import { runSeason, type RunResult } from '@/engine/run'
+import { loadBest, recordRun, type BestOutcome, type BestRun } from '@/lib/best'
 import { dailyKey, dailyNumber, dailySeed, dailyShareText, encodeRun, seedCode } from '@/engine/share'
 import type { Combo, Player, Ruleset } from '@/engine/types'
 import {
@@ -149,6 +159,9 @@ export default function Game() {
   const [hapticSupport, setHapticSupport] = useState<HapticsSupport>('ok')
   const [palette, setPalette] = useState<Palette>('night')
   const [dailyDone, setDailyDone] = useState<StoredDaily | null>(null)
+  /** The bar to beat, read once on mount and refreshed after every free run. */
+  const [best, setBest] = useState<BestRun | null>(null)
+  const [outcome, setOutcome] = useState<BestOutcome | null>(null)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
   const clearTimers = () => {
@@ -229,6 +242,7 @@ export default function Game() {
   const start = useCallback(
     (seed: number, nextMode: Mode = 'free') => {
       setResult(null)
+      setOutcome(null)
       setPending(null)
       setMode(nextMode)
       // No re-spins in the daily: everyone faces the same draw, so dodging a
@@ -252,6 +266,7 @@ export default function Game() {
   // A seed in the URL replays someone else's exact draft; ?daily opens today's.
   useEffect(() => {
     setDailyDone(readDaily())
+    setBest(loadBest())
     setSound(soundEnabled())
     setHaptics(hapticsEnabled())
     setHapticSupport(hapticsSupport())
@@ -291,10 +306,25 @@ export default function Game() {
       setResult(finished)
       playReveal()
       vibrate([30, 60, 30, 60, 60])
-      if (mode === 'daily' && finished) {
+      if (finished && mode === 'daily') {
         const record = { date: dailyKey(), record: finished.season.record, wins: finished.season.wins }
         writeDaily(record)
         setDailyDone(record)
+      }
+      // Only free play sets the personal best: the daily is one draft per day,
+      // so a good one would raise a bar nobody could then attack.
+      if (finished && mode === 'free') {
+        const { season } = finished
+        setOutcome(
+          recordRun({
+            wins: season.wins,
+            losses: season.losses,
+            record: season.record,
+            scored: season.scored,
+            allowed: season.allowed,
+          }),
+        )
+        setBest(loadBest())
       }
     } else {
       setDisplay(next.spin)
@@ -371,6 +401,15 @@ export default function Game() {
     [ruleset, shownTeamId, shownEraId],
   )
 
+  /**
+   * What is still available at each position. Recomputed only when a pick is
+   * made, since it scans the whole pool.
+   */
+  const outlook = useMemo(() => {
+    if (!state) return new Map<string, Outlook>()
+    return positionOutlook(ruleset.slots, ruleset.players, new Set(state.picks.map((p) => p.playerId)))
+  }, [ruleset, state?.picks])
+
   /** Slots the selected player could fill. Empty when nobody is selected. */
   const pendingSlots = useMemo(
     () => (pending && state ? slotsForPlayer(ruleset, state, pending) : []),
@@ -394,9 +433,23 @@ export default function Game() {
     return candidatesFor(ruleset, state, state.spin)
       .filter((player) => filter === 'all' || groupOf(player) === filter)
       .filter((player) => !needle || player.name.toLowerCase().includes(needle))
-      .map((player) => ({ player, rating: playerRating(player) }))
+      .map((player) => {
+        const rating = playerRating(player)
+        // Best case across the slots he could actually take, and which slot it
+        // was: "+29" is trivia, "+29 at SS" is an instruction.
+        let edge = 0
+        let edgeSlot: string | null = null
+        for (const slot of slotsForPlayer(ruleset, state, player)) {
+          const at = scarcityEdge(rating.score, outlook.get(slot.id))
+          if (at > edge) {
+            edge = at
+            edgeSlot = slot.id
+          }
+        }
+        return { player, rating, edge, edgeSlot }
+      })
       .sort((a, b) => b.rating.score - a.rating.score || a.player.name.localeCompare(b.player.name))
-  }, [ruleset, state, spinning, filter, query])
+  }, [ruleset, state, spinning, filter, query, outlook])
 
   if (!state) return <main className="shell" />
 
@@ -409,6 +462,7 @@ export default function Game() {
         dayNumber={dailyNumber()}
         seedLabel={seedCode(state.seed)}
         shareCode={encodeRun(state)}
+        outcome={outcome}
         onShare={share}
         onReplay={() => start((Math.random() * 0xffffffff) >>> 0, 'free')}
         toast={toast}
@@ -479,7 +533,7 @@ export default function Game() {
           </button>
 
           <div style={{ height: 12 }} />
-          <Projection ruleset={ruleset} state={state} />
+          <Projection ruleset={ruleset} state={state} best={best} />
           {/* No slot is highlighted here: you may fill any open position, and
               marking the first one implies a turn order the game does not have. */}
           <Field ruleset={ruleset} state={state} />
@@ -523,6 +577,7 @@ export default function Game() {
           <Dock
             ruleset={ruleset}
             state={state}
+            outlook={outlook}
             eligibleSlotIds={pendingSlots.map((slot) => slot.id)}
             onSlotTap={(slotId) => pending && choose(pending, slotId)}
           />
@@ -539,7 +594,7 @@ export default function Game() {
           </p>
 
           <div className="candidates">
-            {candidates.map(({ player, rating }) => (
+            {candidates.map(({ player, rating, edge, edgeSlot }) => (
               <button
                 key={player.id}
                 className={`cand${pending?.id === player.id ? ' selected' : ''}`}
@@ -548,7 +603,17 @@ export default function Game() {
                 <span className="cand-pos">{player.positions.join('/')}</span>
                 <span className="cand-body">
                   <span className="cand-name">{player.name}</span>
-                  <span className="cand-label">{rating.label}</span>
+                  {/* The scarcity flag leads, because it is the one line here
+                      that tells you what to do. The stat read is allowed to
+                      truncate behind it; this is not. */}
+                  <span className="cand-label">
+                    {edge >= 12 && edgeSlot && (
+                      <em className="edge">
+                        +{Math.round(edge)} at {edgeSlot}
+                      </em>
+                    )}
+                    <span className="cand-read">{rating.label}</span>
+                  </span>
                 </span>
                 <StatColumns player={player} />
                 <span className="cand-right">
@@ -628,6 +693,18 @@ function SettingsSheet({
           50 is average, 99 is Babe Ruth. Stats are adjusted for the era they
           were put up in, so a 1913 ERA is not treated like a modern one.
         </p>
+        <p className="factor-detail" style={{ marginBottom: 16 }}>
+          The faded number on an empty position is what is <em>typically</em>{' '}
+          still available there. Shortstops run about 42 and first basemen 59, so
+          a decent shortstop is worth taking the moment one appears — waiting
+          rarely pays. When a player is well clear of his position&rsquo;s going
+          rate, his card says so and names the spot.
+        </p>
+        <p className="factor-detail" style={{ marginBottom: 16 }}>
+          DH and closer never carry that flag: any hitter can DH and any arm can
+          close, so those are the slots you fill with whoever is left over, not
+          ones to spend a good player on.
+        </p>
 
         <label className="toggle-row">
           <span>Sounds</span>
@@ -697,11 +774,14 @@ function SettingsSheet({
 function Dock({
   ruleset,
   state,
+  outlook,
   eligibleSlotIds,
   onSlotTap,
 }: {
   ruleset: Ruleset
   state: DraftState
+  /** Typical rating still available at each position. */
+  outlook: Map<string, Outlook>
   /** Slots the player being placed can take. Empty when nobody is selected. */
   eligibleSlotIds: string[]
   onSlotTap: (slotId: string) => void
@@ -724,12 +804,22 @@ function Dock({
             onClick={() => onSlotTap(slot.id)}
           >
             <span className="dock-pos">{slot.id}</span>
-            <span className="dock-rating num">{rating ? rating.score : '\u2014'}</span>
+            {/* Filled slots show what you got; open ones show what the position
+                is typically worth, so a thin position is visible before you
+                spend a pick discovering it. */}
+            <span className={`dock-rating num${rating ? '' : ' expected'}`}>
+              {rating ? rating.score : expectedAt(outlook.get(slot.id))}
+            </span>
           </button>
         )
       })}
     </div>
   )
+}
+
+/** A position with nothing left in it shows a dash, not a zero. */
+function expectedAt(outlook: Outlook | undefined): string | number {
+  return outlook && outlook.count > 0 ? outlook.typical : '\u2014'
 }
 
 /**
@@ -783,7 +873,15 @@ function ratingTier(score: number): string {
  * "if I stopped here, what would this team do?" rather than flattering a roster
  * of one superstar.
  */
-function Projection({ ruleset, state }: { ruleset: Ruleset; state: DraftState }) {
+function Projection({
+  ruleset,
+  state,
+  best,
+}: {
+  ruleset: Ruleset
+  state: DraftState
+  best: BestRun | null
+}) {
   const projected = useMemo(() => {
     const roster = state.picks.flatMap((p) => {
       const player = ruleset.players.find((x) => x.id === p.playerId)
@@ -815,6 +913,15 @@ function Projection({ ruleset, state }: { ruleset: Ruleset; state: DraftState })
         <span className="projection-bar">
           <span style={{ width: `${scale(projected.wins)}%` }} />
           <i style={{ left: `${scale(record)}%` }} title={`Record: ${record} wins`} />
+          {/* Your own bar, drawn next to the all-time one. 116 is scenery; the
+              number you actually beat last time is the one you play against. */}
+          {best && (
+            <i
+              className="mine"
+              style={{ left: `${scale(best.wins)}%` }}
+              title={`Your best: ${best.record}`}
+            />
+          )}
         </span>
         <span className="projection-value num">
           {projected.wins}-{ruleset.seasonGames - projected.wins}
@@ -835,6 +942,17 @@ function Projection({ ruleset, state }: { ruleset: Ruleset; state: DraftState })
         <p className="payroll-note">
           ${Math.round(payroll - PAYROLL_CAP)}M over the ${PAYROLL_CAP}M threshold — your bench
           and the back of the staff pay for it.
+        </p>
+      )}
+
+      {/* Two ticks on one bar need naming, or they are decoration. Shown only
+          once there is a personal best, so a first-time player is not handed a
+          legend for a mark that is not on the board yet. */}
+      {best && (
+        <p className="meter-legend">
+          <b>{best.wins}</b> your best
+          <i />
+          <span>{record} the record</span>
         </p>
       )}
     </div>

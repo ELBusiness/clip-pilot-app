@@ -10,6 +10,8 @@ import {
   payrollOf,
   playerCost,
   playerRating,
+  positionOutlook,
+  scarcityEdge,
 } from '../sports/baseball'
 import { eraLabelFor } from '../sports/baseball/players'
 
@@ -482,4 +484,68 @@ test('overspending costs wins through the bench, not an arbitrary penalty', () =
     baseball.rate(withArms(stacked)).defense > baseball.rate(withArms(thrifty)).defense,
     'a stacked payroll should concede more, through thinner depth',
   )
+})
+
+test('position outlook reports what is left, and thins out as picks are made', () => {
+  const outlook = positionOutlook(baseball.slots, baseball.players, new Set())
+
+  for (const slot of baseball.slots) {
+    const view = outlook.get(slot.id)
+    assert.ok(view, `${slot.id} has no outlook`)
+    assert.ok(view.count > 0, `${slot.id} shows an empty pool`)
+    assert.ok(view.best >= view.typical, `${slot.id} best is below its typical`)
+  }
+
+  // Positions genuinely differ in depth — that is the whole point of showing
+  // it. Corner spots are deep, up-the-middle spots are thin.
+  const first = outlook.get('1B')!.typical
+  const short = outlook.get('SS')!.typical
+  assert.ok(first - short >= 8, `1B (${first}) should out-draw SS (${short}) by a clear margin`)
+
+  // Drafting removes players from the pool it reports on.
+  const catchers = baseball.players.filter((p) => p.positions.includes('C'))
+  const taken = new Set(
+    [...catchers].sort((a, b) => playerRating(b).score - playerRating(a).score).slice(0, 40).map((p) => p.id),
+  )
+  const after = positionOutlook(baseball.slots, baseball.players, taken)
+  assert.ok(after.get('C')!.count < outlook.get('C')!.count, 'drafted catchers should leave the pool')
+  assert.ok(after.get('C')!.best <= outlook.get('C')!.best, 'taking the best catchers should lower the ceiling')
+})
+
+test('scarcity edge measures a player against the position, not the league', () => {
+  const outlook = positionOutlook(baseball.slots, baseball.players, new Set())
+  const short = outlook.get('SS')!
+  const first = outlook.get('1B')!
+
+  // The same rating is worth more at the thinner position.
+  assert.ok(
+    scarcityEdge(70, short) > scarcityEdge(70, first),
+    'a 70 should carry more edge at short than at first',
+  )
+  // The measure is signed: a player below the going rate is a negative, which
+  // is the honest reading — the position will offer better if you wait.
+  assert.ok(scarcityEdge(20, short) < 0)
+  // An unknown position cannot invent an edge either way.
+  assert.equal(scarcityEdge(70, undefined), 0)
+})
+
+test('the residual slots confer no scarcity edge at all', () => {
+  const outlook = positionOutlook(baseball.slots, baseball.players, new Set())
+
+  // DH takes any hitter and the closer takes any arm; both are where a surplus
+  // player goes, so neither can be a reason to draft someone.
+  for (const id of ['DH', 'CL']) {
+    const view = outlook.get(id)!
+    assert.equal(view.scarce, false, `${id} should read as residual, not scarce`)
+    assert.equal(scarcityEdge(95, view), 0, `${id} should never recommend a player`)
+  }
+
+  // Every real position stays scarce, including the deepest of them.
+  for (const id of ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'SP1']) {
+    assert.equal(outlook.get(id)!.scarce, true, `${id} should read as a position to solve`)
+  }
+
+  // And the guard is not just hiding a low median: the DH median is not the
+  // lowest on the board, so a raw difference would have flagged it constantly.
+  assert.ok(outlook.get('DH')!.typical > outlook.get('SS')!.typical)
 })

@@ -2,12 +2,11 @@
   "name": "perfect-season",
   "version": "0.1.0",
   "private": true,
-  "description": "Multi-sport perfect-season roster draft games. Spin for a franchise and era, draft legends, simulate the season.",
+  "description": "162-0 — an MLB roster-draft game. Spin for a franchise and a decade, draft thirteen legends, simulate all 162 games.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "node --test --import tsx tests/*.test.ts",
     "import:lahman": "tsx scripts/import-lahman.ts",

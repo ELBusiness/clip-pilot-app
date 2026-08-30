@@ -979,6 +979,45 @@ button {
   border-radius: 1px;
 }
 
+/* Your own best, marked on the same bar as the all-time record. It is the
+   nearer target of the two, so it takes the accent and the record stays grey. */
+.projection-bar i.mine {
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  background: var(--bulb);
+  box-shadow: 0 0 0 1.5px var(--panel);
+}
+
+/*
+ * Names the two ticks on the projection bar, in the colours they are drawn in,
+ * so the legend needs no key of its own.
+ */
+.meter-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--chalk-faint);
+}
+
+.meter-legend b {
+  font-family: var(--font-num);
+  font-weight: 800;
+  color: var(--bulb);
+  margin-right: 3px;
+}
+
+.meter-legend i {
+  width: 2px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--chalk-faint);
+  margin-left: 4px;
+}
+
 /* ---------- Position dock ---------- */
 
 /*
@@ -1087,6 +1126,15 @@ button {
 
 .dock-slot:not(.filled) .dock-rating {
   color: var(--rule-hi);
+}
+
+/* An empty slot carries the going rate for that position rather than a dash.
+   It has to read as a forecast and not as a player you already have, so it is
+   lighter, narrower and set apart from the solid numbers beside it. */
+.dock-rating.expected {
+  font-weight: 600;
+  font-style: italic;
+  opacity: 0.75;
 }
 
 /* ---------- Pick screen controls ---------- */
@@ -1305,14 +1353,22 @@ button {
 
 /* Plain-English read on the player, for anyone who does not parse slash lines. */
 .cand-label {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
   font-size: 11px;
   color: var(--chalk-faint);
   margin-top: 2px;
   font-weight: 500;
+  min-width: 0;
+}
+
+/* This is the half that gives way when the row runs out of room. */
+.cand-read {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 /* The rating is the anchor of the card: one number, always in the same place,
@@ -1336,6 +1392,23 @@ button {
 
 .cand-rating.ok {
   color: var(--chalk-dim);
+}
+
+/* Said only when a player is well clear of what that position is still paying.
+   It is the one piece of advice the draft gives, so it gets the accent and the
+   fixed width — the stat read beside it truncates instead. */
+.cand-label .edge {
+  flex-shrink: 0;
+  font-style: normal;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--bulb);
+}
+
+.cand-label .edge + .cand-read::before {
+  content: '\00b7';
+  margin-right: 5px;
+  color: var(--rule-hi);
 }
 
 .cand-rating.poor {
@@ -1498,6 +1571,51 @@ button {
   color: var(--chalk-dim);
   line-height: 1.45;
   margin-bottom: 18px;
+}
+
+/* ---------- Personal best ---------- */
+
+/*
+ * The line that gives the game a second play. It sits directly under the
+ * verdict because the two are one thought: what happened, and whether it was
+ * your best. A left rule rather than a filled card, so a miss does not read as
+ * an error state and a beat does not read as a trophy.
+ */
+.pb {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  margin-bottom: 18px;
+  border-left: 3px solid var(--rule-hi);
+  background: var(--panel);
+  border-radius: 0 8px 8px 0;
+}
+
+.pb b {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--chalk);
+}
+
+.pb span {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--chalk-faint);
+}
+
+.pb.beat {
+  border-left-color: var(--bulb);
+  background: color-mix(in srgb, var(--bulb) 12%, var(--panel));
+}
+
+.pb.beat b {
+  color: var(--bulb);
+}
+
+.pb.first {
+  border-left-color: var(--safe);
 }
 
 .factors {

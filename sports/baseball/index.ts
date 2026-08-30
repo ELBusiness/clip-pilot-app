@@ -597,6 +597,95 @@ function payrollStrain(payroll: number): number {
   return Math.max(0, Math.min(1, (payroll - PAYROLL_CAP) / STRAIN_RANGE))
 }
 
+/**
+ * What is still out there at each position.
+ *
+ * The draft was a slot machine: spin, take the best card, repeat. Nothing told
+ * you that catchers are thin in every era while corner outfielders are deep, so
+ * there was no way to plan — only to react to whatever the reel handed you.
+ *
+ * This measures, for every position still open, the typical player left in the
+ * pool. Catchers sitting ten points below outfielders is the whole point: it
+ * tells you to take the catcher in front of you now rather than assume a better
+ * one is coming.
+ */
+export interface Outlook {
+  /** Undrafted players who could fill the slot. */
+  count: number
+  /** Median rating among them — what you can normally expect to get. */
+  typical: number
+  /** Best rating still in the pool, for the ceiling. */
+  best: number
+  /**
+   * Whether the slot is genuinely restricted. DH takes any hitter and the
+   * closer takes any arm, so both are residual slots — whoever is left over
+   * fills them. A slot nobody has to plan for cannot confer a positional edge,
+   * however low its median happens to sit.
+   */
+  scarce: boolean
+}
+
+/**
+ * A slot drawing this share of the widest pool is taking all comers, so it is
+ * a place to put a surplus player rather than a position to solve.
+ */
+const RESIDUAL_SHARE = 0.6
+
+export function positionOutlook(
+  slots: RosterSlot[],
+  players: Player[],
+  draftedIds: Set<string>,
+): Map<string, Outlook> {
+  // Rate each undrafted player once; thirteen slots re-scanning the pool
+  // separately is the difference between instant and a visible stall.
+  const pool: { positions: string[]; score: number }[] = []
+  for (const player of players) {
+    if (draftedIds.has(player.id)) continue
+    pool.push({ positions: player.positions, score: playerRating(player).score })
+  }
+
+  const out = new Map<string, Outlook>()
+  let widest = 0
+  for (const slot of slots) {
+    const scores: number[] = []
+    for (const entry of pool) {
+      if (entry.positions.some((p) => slot.accepts.includes(p))) scores.push(entry.score)
+    }
+    if (scores.length === 0) {
+      out.set(slot.id, { count: 0, typical: 0, best: 0, scarce: false })
+      continue
+    }
+    scores.sort((a, b) => a - b)
+    widest = Math.max(widest, scores.length)
+    out.set(slot.id, {
+      count: scores.length,
+      typical: scores[Math.floor(scores.length / 2)]!,
+      best: scores[scores.length - 1]!,
+      scarce: true,
+    })
+  }
+
+  // Scarcity is relative, so it can only be settled once every pool is known.
+  for (const [id, view] of out) {
+    out.set(id, { ...view, scarce: view.count > 0 && view.count < widest * RESIDUAL_SHARE })
+  }
+  return out
+}
+
+/**
+ * How much better than the going rate a player is at a slot. Positive means
+ * taking him now beats waiting for the position to come round again.
+ *
+ * Residual slots score zero rather than their raw difference: the DH pool's
+ * median sits below the outfield's only because it mixes shortstops in with
+ * sluggers, and telling someone their best bat is "+19 at DH" would be exactly
+ * backwards — the DH is what you fill with the player nobody else needs.
+ */
+export function scarcityEdge(score: number, outlook: Outlook | undefined): number {
+  if (!outlook || !outlook.scarce) return 0
+  return score - outlook.typical
+}
+
 export const baseball: Ruleset = {
   id: 'baseball',
   slug: '162-0',

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import type { RunResult } from '@/engine/run'
 import type { Ruleset } from '@/engine/types'
 import { franchiseShortFor } from '@/sports/baseball/players'
+import { setAtLabel, type BestOutcome } from '@/lib/best'
 
 /**
  * The result screen carries the whole share loop, so it has to answer three
@@ -19,6 +20,7 @@ export default function SeasonReport({
   dayNumber,
   seedLabel,
   shareCode,
+  outcome,
   onShare,
   onReplay,
   toast,
@@ -29,6 +31,8 @@ export default function SeasonReport({
   dayNumber: number
   seedLabel: string
   shareCode: string
+  /** Where this run landed against your own record. Null in the daily. */
+  outcome: BestOutcome | null
   onShare: () => void
   onReplay: () => void
   toast: string | null
@@ -64,6 +68,8 @@ export default function SeasonReport({
         </span>
       </div>
       <p className="verdict">{verdict}</p>
+
+      {outcome && <PersonalBest outcome={outcome} wins={season.wins} />}
 
       <div className="stat-strip">
         <div className="stat-cell">
@@ -164,6 +170,50 @@ export default function SeasonReport({
 
       {toast && <div className="toast">{toast}</div>}
     </main>
+  )
+}
+
+/**
+ * Where this season landed against your own. A single-run game gives you no
+ * reason to open it twice; a number of your own does — and the honest version
+ * of that is showing the miss as well as the beat, with the gap named, so the
+ * next draft has a target instead of a vague sense of "better".
+ */
+function PersonalBest({ outcome, wins }: { outcome: BestOutcome; wins: number }) {
+  const { previous, isBest, seasons } = outcome
+
+  if (!previous) {
+    return (
+      <div className="pb first">
+        <b>First season on the board</b>
+        <span>{wins} wins is the mark to beat. Draft again and take a run at it.</span>
+      </div>
+    )
+  }
+
+  if (isBest) {
+    const gain = wins - previous.wins
+    return (
+      <div className="pb beat">
+        <b>New personal best</b>
+        <span>
+          {gain} {gain === 1 ? 'win' : 'wins'} better than your {previous.record}, set{' '}
+          {setAtLabel(previous.setAt)}. Season {seasons}.
+        </span>
+      </div>
+    )
+  }
+
+  const gap = previous.wins - wins
+  return (
+    <div className="pb miss">
+      <b>Your best stands at {previous.record}</b>
+      <span>
+        {gap === 0
+          ? `Level with it, but no better. Season ${seasons}.`
+          : `${gap} ${gap === 1 ? 'win' : 'wins'} short of it. Season ${seasons}.`}
+      </span>
+    </div>
   )
 }
 

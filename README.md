@@ -1,11 +1,11 @@
 # 162-0
 
-Draft nine legends. Play a season. Try not to lose a game.
+Draft thirteen legends. Play a season. Try not to lose a game.
 
 A roster-draft game in the style of the viral **82-0**, built for baseball:
-spin for a franchise and an era, draft one player into each of the nine
-fielding positions, then simulate all 162 games and find out how close you got
-to a perfect season.
+spin for a franchise and a decade, draft a full roster — nine in the batting
+order, three starters and a closer — then simulate all 162 games and find out
+how close you got to a perfect season.
 
 **One sport, done properly.** 82-0 spawned copies within weeks — `17-0` and
 `20-0` for the NFL, at least six competing `38-0` sites for the Premier League,
@@ -18,8 +18,8 @@ better *baseball* game than the versions that treat the sport as a reskin.
 
 Most versions of this genre add a roster's counting stats into a single
 "strength rating" and map that onto a record. That is fast to build and it
-feels arbitrary to play, because it is. Three things here are different, and
-all three are things a baseball fan will notice.
+feels arbitrary to play, because it is. Four things here are different, and all
+four are things a baseball fan will notice.
 
 ### 1. Stats are adjusted for the era they were put up in
 
@@ -46,15 +46,25 @@ fails if either drifts.
 
 ### 3. Your ace does not pitch all 162 games
 
-A real ace throws about 15% of a team's innings. Letting the drafted pitcher's
+A real ace throws about 15% of a team's innings. Letting one drafted pitcher's
 ERA stand in for the whole staff is the single biggest reason a roster of
-legends used to run away with the season. Here he anchors the staff at 25% and
-the rest of the rotation is league average — enough that the pick matters a
-lot, honest enough that it does not hand you a sub-3.00 team ERA for free.
+legends used to run away with the season. So you draft three starters and a
+closer: the rotation covers 40% of the innings, the closer 9% weighted for
+leverage, and the half of the season nobody you drafted pitches runs at league
+average. The picks matter a lot; they do not hand you a sub-3.00 team ERA.
 
-There is a fourth, smaller one that matters more than it sounds: **nobody plays
-162 games.** Real regulars start about 143 of them, so the drafted nine take 88%
-of the plate appearances and a replacement-level bench takes the rest.
+The same applies to the bats. **Nobody plays 162 games.** Real regulars start
+about 143 of them, so the drafted nine take 84% of the plate appearances and a
+replacement-level bench takes the rest — which is why a roster of nine stars
+still does not score like nine stars.
+
+### 4. The draft is a draft, not a slot machine
+
+Every open position shows what is still typically available there, and the
+positions are genuinely unequal — 42 at shortstop against 59 at first base. So
+the correct pick is often not the highest number on the screen, and the game
+becomes about what you give up rather than what you take. See
+[Position scarcity](#position-scarcity).
 
 ## Payroll
 
@@ -148,6 +158,61 @@ away from what the sim actually does.
 Pitchers top out near 79 where bats reach 99. That is not a bug in the scale —
 you draft nine bats and four arms, so a single bat is worth more to this roster
 than a single arm. The rating tells you the truth about the trade.
+
+## Position scarcity
+
+A draft where every pick is judged only against the players in front of you is
+not a draft — it is a slot machine with a leaderboard. You take the highest
+number on the screen, every time, and there is nothing to think about.
+
+What makes it a game is knowing what you are giving up. So every open position
+carries **the going rate**: the median rating still left in the pool that could
+fill it. The positions are genuinely unequal, and the gap is large enough to
+play against:
+
+| Position | Going rate | Position | Going rate |
+| --- | --- | --- | --- |
+| SS | 42 | 3B | 51 |
+| 2B | 44 | SP | 53 |
+| C | 47 | OF | 56 |
+| DH | 51 | 1B | 59 |
+
+Seventeen points separate shortstop from first base. That means a 60-rated
+shortstop is a far better pick than a 60-rated first baseman, because the pool
+will keep offering you first basemen and will not keep offering you shortstops.
+When a player is clearly above his position's going rate, the card says so and
+names the spot: **+29 at SS**.
+
+The number is shown faintly on every empty slot in the position dock, so the
+information is there while you are choosing rather than in a menu.
+
+**DH and closer never carry the flag.** Any hitter can DH and any arm can close,
+so their pools are the widest on the board and their medians mean nothing — the
+DH median only sits at 51 because it mixes shortstops in with sluggers. Reading
+that as an edge would have told you to put your best bat at DH, which is exactly
+backwards: those are the slots you fill with whoever is left over. Any slot
+drawing more than 60% of the widest pool is treated as residual and scores zero,
+however low its median.
+
+## Your personal best
+
+A single-run game has no reason to be opened twice. The all-time record is 116
+wins, which most drafts do not come close to, so grading every season against it
+gives a returning player nothing to aim at.
+
+So the game remembers your best season and marks it on the projection bar
+**next to** the all-time record, in the accent colour, with both ticks labelled.
+That is the number you are actually playing against, and it moves as you get
+better at it.
+
+The result screen names where the run landed — a new best and by how much, or
+the gap to the one that stands, with the season count. Missing is reported as
+plainly as beating; a game that only celebrates is a game you stop believing.
+
+Only free play sets it. The daily is one draft for everybody, so a good daily
+would raise a bar that cannot then be attacked — the draft is spent. It is
+stored in `localStorage` and nowhere else: there is no account, and every write
+is wrapped, because a private window can make the whole API throw.
 
 ## The Daily Challenge
 
@@ -321,8 +386,9 @@ used to reroll a bad result.
 **Mobile-first, not desktop-shrunk.** The draft never scrolls the page, tap
 targets clear 44px, and the type scale is viewport-driven.
 
-**Static.** All four games prerender to static HTML with no server calls, so
-hosting is free and a viral spike costs nothing.
+**Static.** The game prerenders to static HTML with no server calls, so hosting
+is free and a viral spike costs nothing. The only state that outlives a run is
+your own best season, in `localStorage`.
 
 ## Project structure
 
@@ -339,6 +405,7 @@ sports/
   baseball/          Era adjustment, BaseRuns, staff model, roster pack
 app/                 Next.js app; one route, the game
 components/          Game shell, draft board, season report
+lib/                 Sound and haptics, palettes, personal best
 standalone/          Entry for the single-file build
 scripts/             Lahman importer, standalone bundler
 tests/               Engine determinism, sim math, data integrity, difficulty
@@ -352,9 +419,10 @@ replaces the seed data.
 ## Data and provenance
 
 The roster pack is generated from the **Lahman Baseball Database / Chadwick
-Baseball Databank** — 2,662 players covering 30 franchises and 120 years, the
-three who logged the most time at each franchise, era, and position. Every rate,
-home-run rate, and fielding number traces back to real box scores.
+Baseball Databank** — 4,712 players covering 31 franchises and the seasons from
+1901 to 2019, the four who logged the most time at each franchise, decade, and
+position. Every rate, home-run rate, and fielding number traces back to real box
+scores.
 
 Negro Leagues players are carried by hand on top: MLB recognized those records
 in 2020, but the 2021 databank predates their integration. Their figures follow
