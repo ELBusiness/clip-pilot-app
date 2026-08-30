@@ -33,6 +33,7 @@ import {
   vibrate,
 } from '@/lib/sound'
 import Field from './Field'
+import Masthead from './Masthead'
 import SeasonReport from './SeasonReport'
 
 /**
@@ -407,21 +408,13 @@ export default function Game() {
 
   return (
     <main className="shell">
-      <div className="topbar">
-        <span className="round-pill">
-          {mode === 'daily' ? `Daily #${dailyNumber()}` : '162-0 · MLB'}
-        </span>
-        <span className="round-pill">
-          Pick {Math.min(filled + 1, total)} of {total}
-        </span>
-        <button
-          className="icon-btn"
-          onClick={() => setMenuOpen(true)}
-          aria-label="Settings and how to play"
-        >
-          ☰
-        </button>
-      </div>
+      <Masthead
+        mode={mode}
+        dayNumber={dailyNumber()}
+        pick={Math.min(filled + 1, total)}
+        total={total}
+        onMenu={() => setMenuOpen(true)}
+      />
 
       {menuOpen && (
         <SettingsSheet
@@ -442,6 +435,7 @@ export default function Game() {
         />
       )}
 
+      {phase === 'spin' && (
       <div className="reels">
         <div className={`reel-card team${teamSettled ? ' landed' : ' rolling'}`}>
           <span className="reel-kicker">Team</span>
@@ -456,6 +450,7 @@ export default function Game() {
           </span>
         </div>
       </div>
+      )}
 
       {phase === 'spin' ? (
         <>

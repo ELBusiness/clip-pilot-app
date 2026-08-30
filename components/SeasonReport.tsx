@@ -48,17 +48,17 @@ export default function SeasonReport({
   return (
     <main className="shell">
       <div className="topbar">
-        <span className="round-pill">
-          {mode === 'daily' ? `Daily #${dayNumber}` : '162-0 · MLB'}
+        <span className="stencil">
+          {mode === 'daily' ? `Daily #${dayNumber}` : 'Final'}
         </span>
-        <span className="round-pill">
+        <span className="stencil">
           {mode === 'daily' ? 'Same draft for everyone' : `Seed ${seedLabel}`}
         </span>
       </div>
 
       <div className={`result-record num${season.perfect ? ' perfect' : ''}`}>
         {wins}
-        <span style={{ color: 'var(--text-faint)' }}>
+        <span style={{ color: 'var(--chalk-faint)' }}>
           –{season.losses}
           {ruleset.drawsPossible ? `–${season.draws}` : ''}
         </span>
@@ -92,7 +92,7 @@ export default function SeasonReport({
                 style={{
                   left: factor.z >= 0 ? '50%' : `${50 + factor.z * 50}%`,
                   width: `${Math.abs(factor.z) * 50}%`,
-                  background: factor.z >= 0 ? 'var(--good)' : 'var(--bad)',
+                  background: factor.z >= 0 ? 'var(--safe)' : 'var(--out)',
                 }}
               />
             </span>

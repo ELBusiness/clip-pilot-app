@@ -38,7 +38,9 @@ const html = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#08090c">
+<meta name="theme-color" content="#0b1410">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <title>162-0</title>
 <style>${css}</style>
 </head>
@@ -56,6 +58,8 @@ console.log(`Wrote ${target}  (${(Buffer.byteLength(html) / 1024).toFixed(0)} KB
 // Artifact hosts supply their own document skeleton, so that build ships the
 // page content only — same bundle, no wrapper tags.
 const fragment = `<title>162-0</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>${css}</style>
 <div id="root"></div>
 <script>${js}</script>

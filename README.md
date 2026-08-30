@@ -169,6 +169,29 @@ answers that question and removes the reason to open the game.
 Today's result is remembered locally, so the daily reads as a single attempt
 rather than something to grind.
 
+## Visual direction
+
+A night game seen through an old hand-operated scoreboard. The reference is the
+painted steel board at Wrigley or Fenway: bottle-green panels, cream numerals,
+incandescent bulbs, and the clay and grass of the field itself.
+
+- **Colour** — `#0b1410` bottle-green black, `#12201a` panel, `#f2ede0` chalk
+  cream, `#ffb627` bulb amber, `#a85c3a` infield clay, `#1e5b37` outfield
+  grass. The neutrals are green-biased rather than a borrowed near-black, and
+  the accent is a warm bulb rather than a cold pop, because the subject is a
+  ballpark at night and not a console.
+- **Type** — *Big Shoulders Display* for anything that behaves like painted
+  signage, *IBM Plex Sans* for prose, *IBM Plex Mono* for every figure that has
+  to line up. Three roles, none of them the system default this shipped with
+  before.
+- **Form** — near-square radii, because a scoreboard panel is not a rounded
+  card. Player rows are ticket stubs: torn square on the left, rounded on the
+  right. Chalk hairlines separate zones instead of grey borders.
+
+It commits to one visual world on purpose, so there is no light theme — but
+every colour including the page ground is painted explicitly, so the page holds
+on any host background.
+
 ## Interface
 
 The draft is two screens, not one, because the spin and the pick are two

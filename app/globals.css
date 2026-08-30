@@ -7,37 +7,60 @@
  * shrunken desktop page.
  */
 
+/*
+ * PERFECT SEASON — visual direction
+ *
+ * A night game seen through an old hand-operated scoreboard: bottle-green
+ * painted steel, cream numerals, incandescent bulbs, and the clay and grass of
+ * the field itself. The neutrals are green-biased rather than a borrowed
+ * near-black, and the accent is a warm bulb rather than a cold pop, because the
+ * subject is a ballpark at night and not a console UI.
+ *
+ * This commits to one visual world on purpose, so there is no light theme —
+ * but every colour, including the page ground, is painted explicitly so the
+ * page holds on any host background.
+ */
 :root {
-  /* This game commits to one dark visual world by choice, so the palette is
-     declared once and every colour is painted explicitly rather than inherited
-     from the host page. */
   color-scheme: dark;
 
-  --bg: #08090c;
-  --bg-raised: #12141a;
-  --bg-card: #181b23;
-  --line: #262a35;
-  --line-bright: #363b49;
+  /* Painted steel, in shadow and in light. */
+  --ink: #0b1410;
+  --panel: #12201a;
+  --panel-hi: #17291f;
+  --rule: #26382c;
+  --rule-hi: #37503d;
 
-  --text: #f2f4f8;
-  --text-dim: #a4abbb;
-  --text-faint: #6b7382;
+  /* Chalk on the board; the foul line; the numbers. */
+  --chalk: #f2ede0;
+  --chalk-dim: #a9b3a4;
+  --chalk-faint: #6f7d70;
 
-  --accent: #f5c518;
-  --accent-ink: #1a1400;
-  --good: #3ddc97;
-  --bad: #ff5c5c;
-  --draw: #8b93a5;
+  /* The bulb above the board. Everything bold on this page is this colour. */
+  --bulb: #ffb627;
+  --bulb-ink: #241a04;
+  --bulb-glow: rgba(255, 182, 39, 0.22);
 
-  --radius: 14px;
-  --radius-lg: 20px;
+  /* The field itself, used where the field is actually drawn. */
+  --grass: #1e5b37;
+  --clay: #a85c3a;
+
+  /* Semantic, kept away from the accent so state never reads as emphasis. */
+  --safe: #4fb477;
+  --out: #d2483f;
+  --tie: #8a9488;
+
+  --radius: 10px;
+  --radius-lg: 14px;
 
   --pad: clamp(14px, 4vw, 22px);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
-  --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-num: ui-monospace, 'SF Mono', 'Roboto Mono', Menlo, monospace;
+  /* Big Shoulders for anything that behaves like painted signage, Plex Sans
+     for prose, Plex Mono for every number that has to line up. */
+  --font-display: 'Big Shoulders Display', 'Haettenschweiler', 'Arial Narrow', sans-serif;
+  --font: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-num: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }
 
 * {
@@ -49,17 +72,19 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--ink);
+  color: var(--chalk);
   font-family: var(--font);
-  /* The draft is a fixed-viewport surface; scrolling it feels broken. */
+  font-size: 15px;
   overscroll-behavior: none;
 }
 
 body {
   min-height: 100dvh;
-  /* A faint arena glow so the black is not flat. */
-  background-image: radial-gradient(120% 80% at 50% -10%, #1a1e2b 0%, var(--bg) 62%);
+  /* Stadium lights above and behind the board. */
+  background-image:
+    radial-gradient(120% 60% at 50% -8%, rgba(255, 182, 39, 0.08) 0%, transparent 60%),
+    radial-gradient(100% 70% at 50% 4%, #16261d 0%, var(--ink) 58%);
   background-attachment: fixed;
 }
 
@@ -72,10 +97,34 @@ button {
   touch-action: manipulation;
 }
 
+:focus-visible {
+  outline: 2px solid var(--bulb);
+  outline-offset: 2px;
+}
+
+/* Every figure on this page is a scoreboard reading, so they all line up. */
 .num {
   font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+}
+
+/* Painted signage: condensed, tight, and set in caps where it is a label. */
+.sign {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
+}
+
+/* A stencilled label, the kind painted onto the board itself. */
+.stencil {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--chalk-faint);
 }
 
 /* ---------- Layout ---------- */
@@ -101,11 +150,11 @@ button {
 
 .home-title em {
   font-style: normal;
-  color: var(--accent);
+  color: var(--bulb);
 }
 
 .home-sub {
-  color: var(--text-dim);
+  color: var(--chalk-dim);
   font-size: 16px;
   line-height: 1.5;
   margin: 0 0 28px;
@@ -126,15 +175,15 @@ button {
   text-align: left;
   text-decoration: none;
   color: inherit;
-  background: var(--bg-card);
-  border: 1px solid var(--line);
+  background: var(--panel-hi);
+  border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
   transition: border-color 0.15s ease, transform 0.12s ease;
 }
 
 .sport-card:active {
   transform: scale(0.985);
-  border-color: var(--line-bright);
+  border-color: var(--rule-hi);
 }
 
 .sport-record {
@@ -142,7 +191,7 @@ button {
   font-weight: 800;
   letter-spacing: -0.04em;
   min-width: 84px;
-  color: var(--accent);
+  color: var(--bulb);
 }
 
 .sport-card > span:last-child {
@@ -159,9 +208,59 @@ button {
 .sport-tag {
   display: block;
   font-size: 13.5px;
-  color: var(--text-faint);
+  color: var(--chalk-faint);
   margin-top: 3px;
   line-height: 1.4;
+}
+
+/* ---------- Masthead ---------- */
+
+/*
+ * A painted header board rather than floating pills: the mark, the game's
+ * name, and where you are in the draft, separated from the field below by a
+ * chalk rule the way a scoreboard's header band is.
+ */
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 11px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.mark {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 25px;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--chalk);
+}
+
+.wordmark em {
+  font-style: normal;
+  color: var(--bulb);
+}
+
+.masthead-meta {
+  margin-left: auto;
+  text-align: right;
+  line-height: 1.15;
+}
+
+.masthead-meta b {
+  display: block;
+  font-family: var(--font-num);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--chalk);
 }
 
 /* ---------- Game chrome ---------- */
@@ -171,12 +270,14 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding-bottom: 11px;
   margin-bottom: 14px;
   min-height: 34px;
+  border-bottom: 1px solid var(--rule);
 }
 
 .topbar a {
-  color: var(--text-faint);
+  color: var(--chalk-faint);
   text-decoration: none;
   font-size: 14px;
   font-weight: 600;
@@ -188,9 +289,9 @@ button {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-dim);
-  background: var(--bg-raised);
-  border: 1px solid var(--line);
+  color: var(--chalk-dim);
+  background: var(--panel);
+  border: 1px solid var(--rule);
   padding: 6px 11px;
   border-radius: 999px;
 }
@@ -198,13 +299,14 @@ button {
 /* ---------- Settings sheet ---------- */
 
 .icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 34px;
   height: 34px;
-  border-radius: 999px;
-  border: 1px solid var(--line-bright);
-  color: var(--text-dim);
-  font-size: 15px;
-  line-height: 1;
+  border-radius: 4px;
+  border: 1px solid var(--rule-hi);
+  color: var(--chalk-dim);
   flex-shrink: 0;
 }
 
@@ -222,8 +324,8 @@ button {
 .sheet {
   width: 100%;
   max-width: 560px;
-  background: var(--bg-card);
-  border: 1px solid var(--line-bright);
+  background: var(--panel-hi);
+  border: 1px solid var(--rule-hi);
   border-bottom: 0;
   border-radius: 20px 20px 0 0;
   padding: 16px var(--pad) calc(var(--safe-bottom) + 22px);
@@ -248,7 +350,7 @@ button {
 .howto {
   margin: 0 0 12px;
   padding-left: 18px;
-  color: var(--text-dim);
+  color: var(--chalk-dim);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -261,7 +363,7 @@ button {
   justify-content: space-between;
   gap: 12px;
   padding: 13px 2px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--rule);
   font-size: 15px;
   font-weight: 650;
   cursor: pointer;
@@ -279,7 +381,7 @@ button {
   width: 46px;
   height: 27px;
   border-radius: 999px;
-  background: var(--line);
+  background: var(--rule);
   transition: background 0.18s ease;
   flex-shrink: 0;
 }
@@ -292,17 +394,17 @@ button {
   width: 21px;
   height: 21px;
   border-radius: 999px;
-  background: var(--text-dim);
+  background: var(--chalk-dim);
   transition: transform 0.18s ease, background 0.18s ease;
 }
 
 .toggle-row input:checked + .toggle {
-  background: var(--accent);
+  background: var(--bulb);
 }
 
 .toggle-row input:checked + .toggle::after {
   transform: translateX(19px);
-  background: var(--accent-ink);
+  background: var(--bulb-ink);
 }
 
 .toggle-row.disabled {
@@ -321,13 +423,13 @@ button {
   font-size: 12px;
   font-weight: 500;
   line-height: 1.45;
-  color: var(--text-faint);
+  color: var(--chalk-faint);
   margin-top: 4px;
   max-width: 30ch;
 }
 
 .toggle-row input:focus-visible + .toggle {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--bulb);
   outline-offset: 2px;
 }
 
@@ -347,49 +449,64 @@ button {
 
 .reel-card {
   position: relative;
-  border-radius: 14px;
-  padding: 12px 10px 13px;
+  border-radius: 4px;
+  padding: 11px 10px 12px;
   text-align: center;
-  background: var(--bg-card);
-  border: 2px solid var(--reel-edge, var(--line-bright));
-  box-shadow: 0 0 0 3px var(--reel-halo, transparent), 0 6px 20px -12px #000;
+  /* A window cut into the board: darker than the panel, lit from inside. */
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 182, 39, 0.12), transparent 62%),
+    #0a120e;
+  border: 1px solid var(--rule-hi);
+  box-shadow:
+    inset 0 1px 0 rgba(242, 237, 224, 0.06),
+    inset 0 -14px 22px -18px #000,
+    0 1px 0 rgba(242, 237, 224, 0.04);
   overflow: hidden;
-  min-height: 84px;
+  min-height: 86px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
-.reel-card.team {
-  --reel-edge: var(--accent);
-  --reel-halo: rgba(245, 197, 24, 0.16);
+/* The bulb strip above each window, lit while its reel is still turning. */
+.reel-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--bulb);
+  opacity: 0.28;
+  transition: opacity 0.2s ease;
 }
 
-.reel-card.era {
-  --reel-edge: #7c5cff;
-  --reel-halo: rgba(124, 92, 255, 0.16);
+.reel-card.rolling::before {
+  opacity: 1;
+  box-shadow: 0 0 12px 2px var(--bulb-glow);
 }
 
 .reel-kicker {
-  font-size: 10.5px;
-  letter-spacing: 0.14em;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  font-weight: 800;
-  color: var(--text-faint);
+  font-weight: 700;
+  color: var(--chalk-faint);
   margin-bottom: 5px;
 }
 
 .reel-value {
-  font-size: clamp(17px, 5.4vw, 23px);
-  font-weight: 850;
-  letter-spacing: -0.03em;
-  line-height: 1.08;
+  font-family: var(--font-display);
+  font-size: clamp(22px, 7vw, 30px);
+  font-weight: 800;
+  letter-spacing: -0.005em;
+  line-height: 0.98;
   text-wrap: balance;
+  color: var(--chalk);
 }
 
 .reel-sub {
   font-size: 11.5px;
-  color: var(--text-faint);
+  color: var(--chalk-faint);
   margin-top: 3px;
   font-weight: 650;
 }
@@ -400,7 +517,7 @@ button {
 }
 
 .reel-card.rolling {
-  border-color: var(--line-bright);
+  border-color: var(--rule-hi);
 }
 
 @keyframes reel-tick {
@@ -440,10 +557,10 @@ button {
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 0.92;
-  border-radius: 16px;
+  border-radius: 4px;
   overflow: hidden;
-  background: linear-gradient(180deg, #0d1a14 0%, #0a1210 70%, var(--bg-card) 100%);
-  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #0e1c15 0%, #0a1410 72%, #08110d 100%);
+  border: 1px solid var(--rule);
 }
 
 .field-lines {
@@ -454,20 +571,21 @@ button {
 }
 
 .fl-grass {
-  fill: rgba(46, 122, 76, 0.16);
-  stroke: rgba(255, 255, 255, 0.1);
+  fill: color-mix(in srgb, var(--grass) 26%, transparent);
+  stroke: color-mix(in srgb, var(--chalk) 12%, transparent);
   stroke-width: 0.5;
 }
 
 .fl-dirt {
-  fill: rgba(150, 104, 62, 0.22);
+  fill: color-mix(in srgb, var(--clay) 24%, transparent);
   stroke: none;
 }
 
+/* Chalk, so the lines read as lime rather than as a UI border. */
 .fl-line {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.22);
-  stroke-width: 0.6;
+  stroke: color-mix(in srgb, var(--chalk) 30%, transparent);
+  stroke-width: 0.7;
 }
 
 /* A position marker sits at its real spot on the field. */
@@ -475,10 +593,10 @@ button {
   position: absolute;
   transform: translate(-50%, -50%);
   min-width: 56px;
-  padding: 5px 6px 6px;
-  border-radius: 9px;
-  border: 1px dashed var(--line-bright);
-  background: rgba(10, 13, 18, 0.72);
+  padding: 4px 6px 5px;
+  border-radius: 3px;
+  border: 1px dashed var(--rule-hi);
+  background: rgba(8, 17, 13, 0.78);
   backdrop-filter: blur(2px);
   text-align: center;
   line-height: 1.1;
@@ -486,26 +604,27 @@ button {
 
 .spot.filled {
   border-style: solid;
-  border-color: var(--line-bright);
+  border-color: var(--rule-hi);
   background: rgba(16, 20, 28, 0.93);
 }
 
 .spot.next {
-  border-color: var(--accent);
+  border-color: var(--bulb);
   border-style: solid;
   box-shadow: 0 0 0 2px rgba(245, 197, 24, 0.22);
 }
 
 .spot-pos {
   display: block;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  color: var(--text-faint);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--chalk-faint);
 }
 
 .spot.filled .spot-pos {
-  color: var(--accent);
+  color: var(--bulb);
 }
 
 .spot-name {
@@ -522,7 +641,7 @@ button {
 .spot-dash {
   display: block;
   font-size: 11px;
-  color: var(--line-bright);
+  color: var(--rule-hi);
   margin-top: 1px;
 }
 
@@ -530,7 +649,7 @@ button {
   display: block;
   font-size: 11px;
   font-weight: 800;
-  color: var(--good);
+  color: var(--safe);
   margin-top: 1px;
 }
 
@@ -543,42 +662,43 @@ button {
 }
 
 .bench-slot .bench-name {
-  color: var(--text);
+  color: var(--chalk);
 }
 
 .bench-slot:not(.filled) .bench-name {
-  color: var(--line-bright);
+  color: var(--rule-hi);
 }
 
 .bench-slot {
-  padding: 7px 6px;
-  border-radius: 10px;
-  border: 1px dashed var(--line-bright);
-  background: var(--bg-raised);
+  padding: 6px 6px 7px;
+  border-radius: 3px;
+  border: 1px dashed var(--rule-hi);
+  background: var(--panel);
   text-align: center;
   min-width: 0;
 }
 
 .bench-slot.filled {
   border-style: solid;
-  background: var(--bg-card);
+  background: var(--panel-hi);
 }
 
 .bench-slot.next {
-  border-color: var(--accent);
+  border-color: var(--bulb);
   border-style: solid;
 }
 
 .bench-pos {
   display: block;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  color: var(--text-faint);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--chalk-faint);
 }
 
 .bench-slot.filled .bench-pos {
-  color: var(--accent);
+  color: var(--bulb);
 }
 
 .bench-name {
@@ -595,12 +715,12 @@ button {
   display: block;
   font-size: 12px;
   font-weight: 800;
-  color: var(--good);
+  color: var(--safe);
   margin-top: 1px;
 }
 
 .bench-rating.empty {
-  color: var(--line-bright);
+  color: var(--rule-hi);
 }
 
 /* ---------- Live projection ---------- */
@@ -616,18 +736,18 @@ button {
 }
 
 .projection-bar span.over {
-  background: linear-gradient(90deg, var(--accent), var(--bad));
+  background: linear-gradient(90deg, var(--bulb), var(--out));
 }
 
 .projection-value.over {
-  color: var(--bad);
+  color: var(--out);
 }
 
 .payroll-note {
   margin: 0;
   font-size: 11.5px;
   line-height: 1.45;
-  color: var(--text-faint);
+  color: var(--chalk-faint);
   padding: 0 2px;
 }
 
@@ -643,7 +763,7 @@ button {
 .cand-cost {
   font-size: 10.5px;
   font-weight: 700;
-  color: var(--text-faint);
+  color: var(--chalk-faint);
   margin-top: 1px;
   white-space: nowrap;
 }
@@ -654,24 +774,27 @@ button {
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 12px;
-  padding: 9px 12px;
-  border-radius: 10px;
-  background: var(--bg-raised);
-  border: 1px solid var(--line);
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
 }
 
 .projection-label {
-  font-size: 11px;
-  letter-spacing: 0.09em;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--chalk-faint);
   font-weight: 700;
 }
 
 .projection-value {
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-family: var(--font-num);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
 }
 
 .projection-bar {
@@ -679,7 +802,7 @@ button {
   flex: 1;
   height: 5px;
   border-radius: 3px;
-  background: var(--line);
+  background: var(--rule);
   overflow: visible;
 }
 
@@ -687,7 +810,7 @@ button {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: 3px;
-  background: linear-gradient(90deg, var(--accent), var(--good));
+  background: linear-gradient(90deg, var(--bulb), var(--safe));
   transition: width 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
@@ -696,7 +819,7 @@ button {
   top: -3px;
   bottom: -3px;
   width: 2px;
-  background: var(--text-faint);
+  background: var(--chalk-faint);
   border-radius: 1px;
 }
 
@@ -716,9 +839,9 @@ button {
 }
 
 .dock-slot {
-  border-radius: 6px;
-  border: 1px solid var(--line);
-  background: var(--bg-raised);
+  border-radius: 3px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
   padding: 4px 1px 3px;
   text-align: center;
   min-width: 0;
@@ -726,25 +849,26 @@ button {
 }
 
 .dock-slot.filled {
-  background: var(--bg-card);
-  border-color: var(--line-bright);
+  background: var(--panel-hi);
+  border-color: var(--rule-hi);
 }
 
 .dock-slot.next {
-  border-color: var(--accent);
+  border-color: var(--bulb);
 }
 
 .dock-pos {
   display: block;
-  font-size: 7.5px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  color: var(--text-faint);
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--chalk-faint);
   line-height: 1;
 }
 
 .dock-slot.filled .dock-pos {
-  color: var(--accent);
+  color: var(--bulb);
 }
 
 .dock-rating {
@@ -752,11 +876,11 @@ button {
   font-size: 10.5px;
   font-weight: 800;
   line-height: 1.25;
-  color: var(--good);
+  color: var(--safe);
 }
 
 .dock-slot:not(.filled) .dock-rating {
-  color: var(--line-bright);
+  color: var(--rule-hi);
 }
 
 /* ---------- Pick screen controls ---------- */
@@ -770,25 +894,25 @@ button {
 
 .pill {
   font-size: 12.5px;
-  font-weight: 750;
-  padding: 7px 11px;
-  border-radius: 999px;
-  border: 1px solid var(--line-bright);
-  background: var(--bg-raised);
+  font-weight: 600;
+  padding: 6px 11px;
+  border-radius: 3px;
+  border: 1px solid var(--rule-hi);
+  background: var(--panel);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .pill.team {
-  border-color: rgba(245, 197, 24, 0.5);
-  color: var(--accent);
+  border-color: rgba(255, 182, 39, 0.45);
+  color: var(--bulb);
   min-width: 0;
 }
 
 .pill.era {
-  border-color: rgba(124, 92, 255, 0.5);
-  color: #b9a8ff;
+  border-color: color-mix(in srgb, var(--grass) 70%, var(--chalk));
+  color: var(--chalk-dim);
   flex-shrink: 0;
 }
 
@@ -796,11 +920,11 @@ button {
   margin-left: auto;
   flex-shrink: 0;
   font-size: 12.5px;
-  font-weight: 750;
-  padding: 7px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--line-bright);
-  color: var(--text-dim);
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 3px;
+  border: 1px solid var(--rule-hi);
+  color: var(--chalk-dim);
 }
 
 .pick-head .respin:disabled {
@@ -821,20 +945,22 @@ button {
 }
 
 .filter-tab {
-  font-size: 12px;
-  font-weight: 750;
-  padding: 7px 9px;
-  border-radius: 8px;
-  background: var(--bg-raised);
-  border: 1px solid var(--line);
-  color: var(--text-faint);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 6px 10px 4px;
+  border-radius: 3px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  color: var(--chalk-faint);
   min-width: 30px;
 }
 
 .filter-tab.on {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
+  background: var(--bulb);
+  border-color: var(--bulb);
+  color: var(--bulb-ink);
 }
 
 .search {
@@ -842,26 +968,26 @@ button {
   min-width: 0;
   font-size: 13.5px;
   padding: 8px 11px;
-  border-radius: 8px;
-  background: var(--bg-raised);
-  border: 1px solid var(--line);
-  color: var(--text);
+  border-radius: 3px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  color: var(--chalk);
 }
 
 .search::placeholder {
-  color: var(--text-faint);
+  color: var(--chalk-faint);
 }
 
 .search:focus {
   outline: none;
-  border-color: var(--line-bright);
+  border-color: var(--rule-hi);
 }
 
 /* ---------- Candidate list ---------- */
 
 .pick-prompt {
   font-size: 13px;
-  color: var(--text-faint);
+  color: var(--chalk-faint);
   font-weight: 600;
   margin: 0 0 8px;
 }
@@ -891,26 +1017,26 @@ button {
   overflow: hidden;
   text-align: left;
   padding: 13px 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--line);
+  background: var(--panel-hi);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
   transition: border-color 0.12s ease, transform 0.1s ease;
 }
 
 .cand:active {
   transform: scale(0.99);
-  border-color: var(--accent);
+  border-color: var(--bulb);
 }
 
 .cand-pos {
-  font-size: 10px;
+  font-family: var(--font-display);
+  font-size: 14px;
   font-weight: 800;
-  letter-spacing: 0.03em;
-  color: var(--accent);
-  background: rgba(245, 197, 24, 0.1);
-  border: 1px solid rgba(245, 197, 24, 0.25);
-  border-radius: 6px;
-  padding: 4px 5px;
+  letter-spacing: 0.04em;
+  color: var(--bulb);
+  border: 1px solid rgba(255, 182, 39, 0.28);
+  border-radius: 3px;
+  padding: 3px 5px 2px;
   min-width: 34px;
   text-align: center;
   flex-shrink: 0;
@@ -923,8 +1049,9 @@ button {
 
 .cand-name {
   display: block;
-  font-size: 14.5px;
-  font-weight: 650;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.008em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -933,7 +1060,7 @@ button {
 .cand-stat {
   display: block;
   font-size: 12.5px;
-  color: var(--text-faint);
+  color: var(--chalk-faint);
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -962,20 +1089,21 @@ button {
 
 .statcol small {
   display: block;
-  font-size: 8.5px;
-  letter-spacing: 0.06em;
-  color: var(--text-faint);
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--chalk-faint);
   font-weight: 700;
-  margin-top: 1px;
+  margin-top: 0;
 }
 
 /* Plain-English read on the player, for anyone who does not parse slash lines. */
 .cand-label {
   display: block;
-  font-size: 11.5px;
-  color: var(--text-dim);
-  margin-top: 3px;
-  font-weight: 600;
+  font-size: 11px;
+  color: var(--chalk-faint);
+  margin-top: 2px;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -984,7 +1112,7 @@ button {
 /* The rating is the anchor of the card: one number, always in the same place,
    so a list of twenty players can be scanned in a couple of seconds. */
 .cand-rating {
-  font-size: 19px;
+  font-size: 21px;
   font-weight: 800;
   letter-spacing: -0.03em;
   min-width: 28px;
@@ -993,7 +1121,7 @@ button {
 }
 
 .cand-rating.elite {
-  color: var(--good);
+  color: var(--safe);
 }
 
 .cand-rating.good {
@@ -1001,11 +1129,11 @@ button {
 }
 
 .cand-rating.ok {
-  color: var(--text-dim);
+  color: var(--chalk-dim);
 }
 
 .cand-rating.poor {
-  color: var(--bad);
+  color: var(--out);
 }
 
 /* ---------- Slot chooser ---------- */
@@ -1022,12 +1150,12 @@ button {
   font-weight: 650;
   padding: 9px 13px;
   border-radius: 999px;
-  background: var(--bg-raised);
-  border: 1px solid var(--line-bright);
+  background: var(--panel);
+  border: 1px solid var(--rule-hi);
 }
 
 .slot-chip:active {
-  border-color: var(--accent);
+  border-color: var(--bulb);
 }
 
 /* ---------- Roster board ---------- */
@@ -1042,8 +1170,8 @@ button {
 .board-slot {
   padding: 7px 9px;
   border-radius: 9px;
-  background: var(--bg-raised);
-  border: 1px solid var(--line);
+  background: var(--panel);
+  border: 1px solid var(--rule);
   min-width: 0;
 }
 
@@ -1064,7 +1192,7 @@ button {
 }
 
 .board-slot.next {
-  border-color: var(--accent);
+  border-color: var(--bulb);
   opacity: 1;
 }
 
@@ -1072,7 +1200,7 @@ button {
   font-size: 10px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--chalk-faint);
   font-weight: 700;
 }
 
@@ -1087,7 +1215,7 @@ button {
 
 .board-team {
   font-size: 11px;
-  color: var(--text-faint);
+  color: var(--chalk-faint);
   margin-top: 1px;
 }
 
@@ -1099,14 +1227,17 @@ button {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  min-height: 54px;
+  min-height: 56px;
   padding: 0 20px;
-  border-radius: var(--radius);
-  font-size: 16.5px;
-  font-weight: 750;
-  letter-spacing: -0.01em;
-  background: var(--accent);
-  color: var(--accent-ink);
+  border-radius: 6px;
+  font-family: var(--font-display);
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #ffc851, var(--bulb));
+  color: var(--bulb-ink);
+  box-shadow: 0 0 0 1px rgba(255, 182, 39, 0.35), 0 10px 30px -14px var(--bulb);
   transition: transform 0.1s ease, opacity 0.15s ease;
 }
 
@@ -1119,12 +1250,16 @@ button {
 }
 
 .btn.ghost {
-  background: transparent;
-  color: var(--text-dim);
-  border: 1px solid var(--line-bright);
+  background: none;
+  color: var(--chalk-dim);
+  border: 1px solid var(--rule-hi);
+  box-shadow: none;
   min-height: 46px;
-  font-size: 14.5px;
-  font-weight: 650;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
 }
 
 .btn-row {
@@ -1136,21 +1271,24 @@ button {
 /* ---------- Result ---------- */
 
 .result-record {
-  font-size: clamp(56px, 20vw, 92px);
-  font-weight: 850;
-  letter-spacing: -0.055em;
-  line-height: 0.9;
-  margin: 6px 0;
+  font-family: var(--font-display);
+  font-size: clamp(72px, 26vw, 118px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 0.86;
+  margin: 4px 0 10px;
+  font-variant-numeric: tabular-nums;
 }
 
 .result-record.perfect {
-  color: var(--accent);
+  color: var(--bulb);
+  text-shadow: 0 0 40px var(--bulb-glow);
 }
 
 .verdict {
   font-size: 16px;
   font-weight: 650;
-  color: var(--text-dim);
+  color: var(--chalk-dim);
   line-height: 1.45;
   margin-bottom: 18px;
 }
@@ -1167,8 +1305,8 @@ button {
   gap: 3px 12px;
   align-items: baseline;
   padding: 11px 13px;
-  background: var(--bg-card);
-  border: 1px solid var(--line);
+  background: var(--panel-hi);
+  border: 1px solid var(--rule);
   border-radius: 11px;
 }
 
@@ -1186,7 +1324,7 @@ button {
 
 .factor-detail {
   font-size: 12px;
-  color: var(--text-faint);
+  color: var(--chalk-faint);
   grid-column: 1;
 }
 
@@ -1194,7 +1332,7 @@ button {
   position: relative;
   height: 4px;
   border-radius: 2px;
-  background: var(--line);
+  background: var(--rule);
   grid-column: 1 / -1;
   margin-top: 6px;
   overflow: hidden;
@@ -1215,24 +1353,26 @@ button {
 }
 
 .stat-cell {
-  padding: 12px;
-  background: var(--bg-card);
-  border: 1px solid var(--line);
-  border-radius: 11px;
+  padding: 11px 8px;
+  background: var(--panel-hi);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
   text-align: center;
 }
 
 .stat-cell b {
   display: block;
-  font-size: 21px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-family: var(--font-num);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
 }
 
 .stat-cell small {
   display: block;
-  font-size: 11px;
-  color: var(--text-faint);
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  color: var(--chalk-faint);
   margin-top: 3px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1251,22 +1391,23 @@ button {
   width: 6px;
   height: 12px;
   border-radius: 1.5px;
-  background: var(--good);
+  background: var(--safe);
 }
 
 .season-strip i.l {
-  background: var(--bad);
+  background: var(--out);
 }
 
 .season-strip i.d {
-  background: var(--draw);
+  background: var(--tie);
 }
 
 .section-head {
-  font-size: 11.5px;
-  letter-spacing: 0.1em;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--chalk-faint);
   font-weight: 700;
   margin: 0 0 8px;
 }
@@ -1281,8 +1422,8 @@ button {
   left: 50%;
   bottom: calc(var(--safe-bottom) + 22px);
   transform: translateX(-50%);
-  background: var(--text);
-  color: var(--bg);
+  background: var(--chalk);
+  color: var(--ink);
   font-size: 14px;
   font-weight: 700;
   padding: 11px 18px;
