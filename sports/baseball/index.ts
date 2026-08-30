@@ -56,14 +56,45 @@ const TEAM_AT_BATS = 5500
 const UNEARNED_RUN_FACTOR = 1.075
 
 /**
- * Share of team innings credited to the drafted ace. A real workhorse throws
- * closer to 15%; 25% is a deliberate thumb on the scale so the pitching pick
- * carries real weight without erasing the other four-fifths of a staff.
+ * Innings shares, taken from what real staffs actually do.
+ *
+ * Three starters throwing 210 innings each is about 43% of a team's 1,450.
+ * A closer throws roughly 70 — only 5% — but those innings come with a leverage
+ * index near 1.8, so his impact is weighted up to 9%. The remaining 48% is the
+ * back of the rotation and middle relief nobody gets to draft, held at league
+ * average.
+ *
+ * This is the difference between a model and a wish. Crediting the drafted arms
+ * with 70% of innings let an optimal draft post a 2.87 team ERA — better than
+ * any staff in history — and beat the all-time win record four times out of
+ * five.
  */
-const ACE_INNINGS_SHARE = 0.25
+const ROTATION_SHARE = 0.4
+const CLOSER_SHARE = 0.09
+const UNDRAFTED_STAFF_SHARE = 1 - ROTATION_SHARE - CLOSER_SHARE
 
-/** Home runs are estimated from isolated power; this is the fitted rate. */
-const HR_PER_ISO_AB = 0.28
+/**
+ * How much defence is worth, in runs per standard deviation of glove across a
+ * full season. The gap between the best and worst defensive teams in a real
+ * season is roughly 120 runs, so a team a full deviation better than average at
+ * every position saves about 60.
+ */
+const RUNS_PER_DEF_SD = 7.2
+
+/**
+ * Defensive importance by roster slot. This is the bat-versus-glove trade the
+ * whole sport argues about: a shortstop who cannot field costs you far more
+ * than a first baseman who cannot, and the designated hitter costs you nothing
+ * because he never takes the field. Without this, nothing stopped a player
+ * stacking nine sluggers up the middle and posting a team slugging percentage
+ * no real club has ever managed.
+ */
+const DEFENSIVE_WEIGHT: Record<string, number> = {
+  C: 1.0, SS: 1.2, '2B': 1.0, CF: 1.1, '3B': 0.9,
+  LF: 0.65, RF: 0.65, '1B': 0.5, DH: 0,
+}
+
+
 
 /**
  * Share of plate appearances actually taken by the drafted nine.
@@ -74,22 +105,44 @@ const HR_PER_ISO_AB = 0.28
  * sources of inflation in this genre: it hands you a full year of nine Hall of
  * Famers with no rest days, no injuries, and no platoon disadvantage.
  */
-const STARTER_PA_SHARE = 0.88
+const STARTER_PA_SHARE = 0.84
 
 /** What the bench hits when the stars sit. Roughly replacement level. */
-const BENCH = { avg: 0.235, obp: 0.29, slg: 0.36 }
+const BENCH = { avg: 0.235, obp: 0.29, slg: 0.36, hrRate: 0.022 }
 
 /**
  * The reference run environment every stat is normalized into — roughly the
  * 2010s, so the numbers on screen read the way a modern fan expects.
  */
-const REF = { avg: 0.25, obp: 0.32, slg: 0.405, era: 4.05 }
+const REF = { avg: 0.25, obp: 0.32, slg: 0.405, era: 4.05, hrRate: 0.03 }
+
+/**
+ * Regression toward the mean, applied to every drafted line.
+ *
+ * A player's numbers with one franchise in one decade are what he did *in that
+ * context* — that park, that lineup around him, that pitching staff behind him.
+ * Projecting him onto a different team means regressing toward league average,
+ * which is what every serious projection system does (Marcel, ZiPS, Steamer all
+ * regress, and heavily). Skipping it treats every line as pure repeatable
+ * talent and quietly assumes thirteen players all sustain their best context at
+ * once.
+ *
+ * It bites hardest at the extremes, which is exactly where this game needed it:
+ * a .400 on-base hitter projects to .386, a 2.20 ERA projects to 2.53.
+ */
+const REGRESSION = 0.18
+
+function regress(value: number, mean: number): number {
+  return value * (1 - REGRESSION) + mean * REGRESSION
+}
 
 interface LeagueEnv {
   avg: number
   obp: number
   slg: number
   era: number
+  /** League home runs per at-bat. Swings by a factor of ten across eras. */
+  hrRate: number
 }
 
 /**
@@ -98,52 +151,68 @@ interface LeagueEnv {
  * ignoring that is the difference between a fair comparison and a fantasy.
  */
 export function leagueEnv(year: number): LeagueEnv {
-  if (year <= 1919) return { avg: 0.255, obp: 0.32, slg: 0.335, era: 2.75 }
-  if (year <= 1929) return { avg: 0.285, obp: 0.348, slg: 0.397, era: 4.0 }
-  if (year <= 1939) return { avg: 0.28, obp: 0.345, slg: 0.4, era: 4.3 }
-  if (year <= 1949) return { avg: 0.265, obp: 0.335, slg: 0.37, era: 3.65 }
-  if (year <= 1959) return { avg: 0.263, obp: 0.335, slg: 0.395, era: 3.95 }
-  if (year <= 1969) return { avg: 0.25, obp: 0.32, slg: 0.375, era: 3.55 }
-  if (year <= 1979) return { avg: 0.257, obp: 0.325, slg: 0.375, era: 3.7 }
-  if (year <= 1989) return { avg: 0.26, obp: 0.325, slg: 0.385, era: 3.95 }
-  if (year <= 1999) return { avg: 0.266, obp: 0.335, slg: 0.415, era: 4.3 }
-  if (year <= 2009) return { avg: 0.266, obp: 0.335, slg: 0.425, era: 4.45 }
-  if (year <= 2019) return { avg: 0.254, obp: 0.32, slg: 0.405, era: 4.05 }
-  return { avg: 0.247, obp: 0.315, slg: 0.4, era: 4.15 }
+  if (year <= 1919) return { avg: 0.255, obp: 0.32, slg: 0.335, era: 2.75, hrRate: 0.004 }
+  if (year <= 1929) return { avg: 0.285, obp: 0.348, slg: 0.397, era: 4.0, hrRate: 0.012 }
+  if (year <= 1939) return { avg: 0.28, obp: 0.345, slg: 0.4, era: 4.3, hrRate: 0.017 }
+  if (year <= 1949) return { avg: 0.265, obp: 0.335, slg: 0.37, era: 3.65, hrRate: 0.016 }
+  if (year <= 1959) return { avg: 0.263, obp: 0.335, slg: 0.395, era: 3.95, hrRate: 0.024 }
+  if (year <= 1969) return { avg: 0.25, obp: 0.32, slg: 0.375, era: 3.55, hrRate: 0.023 }
+  if (year <= 1979) return { avg: 0.257, obp: 0.325, slg: 0.375, era: 3.7, hrRate: 0.02 }
+  if (year <= 1989) return { avg: 0.26, obp: 0.325, slg: 0.385, era: 3.95, hrRate: 0.022 }
+  if (year <= 1999) return { avg: 0.266, obp: 0.335, slg: 0.415, era: 4.3, hrRate: 0.027 }
+  if (year <= 2009) return { avg: 0.266, obp: 0.335, slg: 0.425, era: 4.45, hrRate: 0.029 }
+  if (year <= 2019) return { avg: 0.254, obp: 0.32, slg: 0.405, era: 4.05, hrRate: 0.03 }
+  return { avg: 0.247, obp: 0.315, slg: 0.4, era: 4.15, hrRate: 0.033 }
 }
 
 /** A batter's rates, rebased from his own era into the reference environment. */
 export function normalizedBatting(player: Player) {
   const lg = leagueEnv(player.year)
   return {
-    avg: (player.stats['avg'] ?? 0) * (REF.avg / lg.avg),
-    obp: (player.stats['obp'] ?? 0) * (REF.obp / lg.obp),
-    slg: (player.stats['slg'] ?? 0) * (REF.slg / lg.slg),
+    avg: regress((player.stats['avg'] ?? 0) * (REF.avg / lg.avg), REF.avg),
+    obp: regress((player.stats['obp'] ?? 0) * (REF.obp / lg.obp), REF.obp),
+    slg: regress((player.stats['slg'] ?? 0) * (REF.slg / lg.slg), REF.slg),
+    hrRate: regress((player.stats['hrRate'] ?? 0) * (REF.hrRate / lg.hrRate), REF.hrRate),
   }
 }
 
 /** A pitcher's ERA, rebased the same way. This is ERA+ expressed as an ERA. */
 export function normalizedEra(player: Player): number {
   const lg = leagueEnv(player.year)
-  return (player.stats['era'] ?? REF.era) * (REF.era / lg.era)
+  return regress((player.stats['era'] ?? REF.era) * (REF.era / lg.era), REF.era)
 }
 
+/**
+ * A full roster card: the nine in the batting order plus the arms that
+ * actually decide a season. Three starters and a closer is what makes run
+ * prevention vary — with a single pitcher every team ended up with roughly a
+ * league-average staff, which flattened the whole win distribution.
+ */
 export const SLOTS: RosterSlot[] = [
-  { id: 'P', label: 'Pitcher', group: 'Battery', accepts: ['SP', 'RP'] },
-  { id: 'C', label: 'Catcher', group: 'Battery', accepts: ['C'] },
-  { id: '1B', label: 'First Base', group: 'Infield', accepts: ['1B'] },
-  { id: '2B', label: 'Second Base', group: 'Infield', accepts: ['2B'] },
-  { id: '3B', label: 'Third Base', group: 'Infield', accepts: ['3B'] },
-  { id: 'SS', label: 'Shortstop', group: 'Infield', accepts: ['SS'] },
-  { id: 'LF', label: 'Left Field', group: 'Outfield', accepts: ['LF', 'CF', 'RF', 'OF'] },
-  { id: 'CF', label: 'Center Field', group: 'Outfield', accepts: ['CF', 'OF'] },
-  { id: 'RF', label: 'Right Field', group: 'Outfield', accepts: ['RF', 'CF', 'LF', 'OF'] },
+  { id: 'C', label: 'Catcher', group: 'Lineup', accepts: ['C'] },
+  { id: '1B', label: 'First Base', group: 'Lineup', accepts: ['1B'] },
+  { id: '2B', label: 'Second Base', group: 'Lineup', accepts: ['2B'] },
+  { id: '3B', label: 'Third Base', group: 'Lineup', accepts: ['3B'] },
+  { id: 'SS', label: 'Shortstop', group: 'Lineup', accepts: ['SS'] },
+  { id: 'LF', label: 'Left Field', group: 'Lineup', accepts: ['LF', 'CF', 'RF', 'OF'] },
+  { id: 'CF', label: 'Center Field', group: 'Lineup', accepts: ['CF', 'OF'] },
+  { id: 'RF', label: 'Right Field', group: 'Lineup', accepts: ['RF', 'CF', 'LF', 'OF'] },
+  {
+    id: 'DH',
+    label: 'Designated Hitter',
+    group: 'Lineup',
+    accepts: ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'OF'],
+  },
+  { id: 'SP1', label: 'Ace', group: 'Rotation', accepts: ['SP'] },
+  { id: 'SP2', label: 'No. 2 Starter', group: 'Rotation', accepts: ['SP'] },
+  { id: 'SP3', label: 'No. 3 Starter', group: 'Rotation', accepts: ['SP'] },
+  { id: 'CL', label: 'Closer', group: 'Bullpen', accepts: ['RP', 'SP'] },
 ]
 
 const context: LeagueContext = {
   averageScore: 4.5,
   // One standard deviation of team quality is about half a run per game.
-  spread: 0.45,
+  spread: 0.52,
   model: 'poisson',
 }
 
@@ -160,12 +229,18 @@ export function isPitcher(stats: Record<string, number>): boolean {
  * approaches "everyone who reached base scored" and stops there, instead of
  * running off to infinity the way a linear estimator does.
  */
-export function baseRuns(avg: number, obp: number, slg: number, atBats: number): number {
+export function baseRuns(
+  avg: number,
+  obp: number,
+  slg: number,
+  hrRate: number,
+  atBats: number,
+): number {
   const hits = avg * atBats
   const totalBases = slg * atBats
   // Walks implied by the gap between getting on base and getting a hit.
   const walks = obp >= 1 ? 0 : Math.max(0, (obp * atBats - hits) / (1 - obp))
-  const homeRuns = Math.max(0, slg - avg) * HR_PER_ISO_AB * atBats
+  const homeRuns = Math.min(hits, Math.max(0, hrRate) * atBats)
 
   const onBase = hits + walks - homeRuns
   const advancement =
@@ -178,7 +253,6 @@ export function baseRuns(avg: number, obp: number, slg: number, atBats: number):
 
 function rate(roster: RatedPlayer[]): TeamRating {
   const batters = roster.filter((r) => !isPitcher(r.player.stats))
-  const ace = roster.find((r) => isPitcher(r.player.stats))
 
   // --- Offense -----------------------------------------------------------
   // Team rates first, then one conversion. Averaging is a deliberate
@@ -189,6 +263,7 @@ function rate(roster: RatedPlayer[]): TeamRating {
   const starterAvg = norm.reduce((s, n) => s + n.avg, 0) / size
   const starterObp = norm.reduce((s, n) => s + n.obp, 0) / size
   const starterSlg = norm.reduce((s, n) => s + n.slg, 0) / size
+  const starterHrRate = norm.reduce((s, n) => s + n.hrRate, 0) / size
 
   // Blend in the bench that takes the other twelve percent of the season.
   const blend = (starter: number, bench: number) =>
@@ -196,15 +271,39 @@ function rate(roster: RatedPlayer[]): TeamRating {
   const teamAvg = blend(starterAvg, BENCH.avg)
   const teamObp = blend(starterObp, BENCH.obp)
   const teamSlg = blend(starterSlg, BENCH.slg)
+  const teamHrRate = blend(starterHrRate, BENCH.hrRate)
 
-  const runsScored = baseRuns(teamAvg, teamObp, teamSlg, TEAM_AT_BATS)
+  const runsScored = baseRuns(teamAvg, teamObp, teamSlg, teamHrRate, TEAM_AT_BATS)
   const offense = runsScored / SEASON_GAMES
 
   // --- Run prevention ----------------------------------------------------
-  const aceEra = ace ? normalizedEra(ace.player) : REF.era
-  const staffEra = aceEra * ACE_INNINGS_SHARE + REF.era * (1 - ACE_INNINGS_SHARE)
-  const defense = staffEra * UNEARNED_RUN_FACTOR
-  const runsAllowed = defense * SEASON_GAMES
+  const starters = roster.filter((r) => r.slot.group === 'Rotation')
+  const closers = roster.filter((r) => r.slot.group === 'Bullpen')
+
+  const meanEra = (group: RatedPlayer[]) =>
+    group.length === 0
+      ? REF.era
+      : group.reduce((sum, r) => sum + normalizedEra(r.player), 0) / group.length
+
+  const rotationEra = meanEra(starters)
+  const closerEra = meanEra(closers)
+  const staffEra =
+    rotationEra * ROTATION_SHARE +
+    closerEra * CLOSER_SHARE +
+    REF.era * UNDRAFTED_STAFF_SHARE
+
+  // Gloves behind the staff. A DH is weighted zero, so parking a bat there is
+  // free and parking one at shortstop is not.
+  const runsSaved = batters.reduce((total, entry) => {
+    const weight = DEFENSIVE_WEIGHT[entry.slot.id] ?? 0.7
+    return total + weight * (entry.player.stats['def'] ?? 0) * RUNS_PER_DEF_SD
+  }, 0)
+
+  const runsAllowed = Math.max(
+    250,
+    staffEra * UNEARNED_RUN_FACTOR * SEASON_GAMES - runsSaved,
+  )
+  const defense = runsAllowed / SEASON_GAMES
 
   const factors = [
     {
@@ -226,24 +325,28 @@ function rate(roster: RatedPlayer[]): TeamRating {
       detail: `${offense.toFixed(2)} per game · BaseRuns`,
     },
     {
-      label: 'Ace',
-      value: aceEra.toFixed(2),
-      z: clamp((REF.era - aceEra) / 1.4),
-      detail: ace
-        ? `${ace.player.name}, era-adjusted from ${(ace.player.stats['era'] ?? 0).toFixed(2)}`
-        : 'No pitcher drafted',
+      label: 'Rotation',
+      value: rotationEra.toFixed(2),
+      z: clamp((REF.era - rotationEra) / 1.3),
+      detail: 'Era-adjusted ERA of your three starters',
     },
     {
       label: 'Staff ERA',
       value: staffEra.toFixed(2),
-      z: clamp((REF.era - staffEra) / 0.55),
-      detail: `Your ace covers ${Math.round(ACE_INNINGS_SHARE * 100)}% of innings; the rest is league average`,
+      z: clamp((REF.era - staffEra) / 0.8),
+      detail: `Rotation ${Math.round(ROTATION_SHARE * 100)}% of innings · closer ${Math.round(CLOSER_SHARE * 100)}% by leverage · rest league average`,
+    },
+    {
+      label: 'Defence',
+      value: `${runsSaved >= 0 ? '+' : ''}${Math.round(runsSaved)}`,
+      z: clamp(runsSaved / 55),
+      detail: 'Runs saved by your gloves, weighted by position. The DH does not field.',
     },
     {
       label: 'Projected runs allowed',
       value: Math.round(runsAllowed).toString(),
       z: clamp((context.averageScore - defense) / 1.0),
-      detail: `${defense.toFixed(2)} per game`,
+      detail: `${defense.toFixed(2)} per game, after defence`,
     },
   ]
 
@@ -259,7 +362,9 @@ function statLine(player: Player): string {
   if (isPitcher(s)) {
     return `${(s['era'] ?? 0).toFixed(2)} ERA · ${s['w'] ?? 0} W · ${s['so'] ?? 0} K`
   }
-  return `${pct3(s['avg'] ?? 0)}/${pct3(s['obp'] ?? 0)}/${pct3(s['slg'] ?? 0)} · ${s['hr'] ?? 0} HR`
+  const def = s['def'] ?? 0
+  const glove = def >= 0.75 ? ' · elite glove' : def <= -0.75 ? ' · poor glove' : ''
+  return `${pct3(s['avg'] ?? 0)}/${pct3(s['obp'] ?? 0)}/${pct3(s['slg'] ?? 0)} · ${s['hr'] ?? 0} HR${glove}`
 }
 
 const compareKeys: CompareKey[] = [
@@ -268,6 +373,7 @@ const compareKeys: CompareKey[] = [
   { key: 'slg', label: 'SLG', higherIsBetter: true, format: pct3 },
   { key: 'hr', label: 'HR', higherIsBetter: true },
   { key: 'sb', label: 'SB', higherIsBetter: true },
+  { key: 'def', label: 'DEF', higherIsBetter: true, format: (v) => (v >= 0 ? '+' : '') + v.toFixed(1) },
   { key: 'era', label: 'ERA', higherIsBetter: false, format: (v) => v.toFixed(2) },
   { key: 'w', label: 'W', higherIsBetter: true },
   { key: 'so', label: 'SO', higherIsBetter: true },

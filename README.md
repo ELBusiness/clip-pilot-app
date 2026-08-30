@@ -38,10 +38,11 @@ return more runs than the number of men who actually reached base. Stack nine
 sluggers and the offense compounds hard but stays inside physical reality.
 Linear estimators happily project past it.
 
-Calibration is checked against real baseball: a league-average lineup and a
-league-average ace returns 729 runs scored and 705 allowed, against a real MLB
-average near 740. That falls out of the formula rather than being tuned in, and
-a test fails if it drifts.
+Calibration is checked against real baseball twice over. A league-average
+lineup returns 724 runs against a real MLB average near 740; feed it the 1927
+Yankees' actual line and it returns 981 runs against the 975 they really
+scored. Both fall out of the formula rather than being tuned in, and a test
+fails if either drifts.
 
 ### 3. Your ace does not pitch all 162 games
 
@@ -67,13 +68,31 @@ by the 1906 Cubs and 2001 Mariners. As tuned:
 
 | How you play | Median wins | Beats 116 |
 |---|---|---|
-| Taking whoever | 102 | 6% |
-| Middling picks | 100 | 2% |
-| Drafting well | 107 | 17% |
+| Taking whoever | 89 | 0% |
+| Middling picks | 88 | 0.3% |
+| Picking the best card each spin | 109 | 14% |
+| Exhaustive optimizer | 110 | 15% |
 
 Beating the all-time record is a real achievement and a real brag. Going 162-0
 is the ghost you chase. A test guards this curve, so a future change that makes
 a middling draft blow past the record again fails CI rather than shipping.
+
+Getting here took four corrections, and all four were places the model was
+quietly generous rather than places the game was tuned wrong:
+
+- **Projection regression.** A player's line with one franchise in one decade is
+  what he did *in that context*. Projecting him elsewhere means regressing 18%
+  toward league average, which every serious projection system does.
+- **Real home-run rates.** Estimating homers from isolated power counts doubles
+  and triples as homers — it credited the 1927 Yankees with 280 when they hit
+  158, and in BaseRuns a homer scores itself.
+- **Defence.** Nothing stopped a player stacking nine sluggers up the middle.
+  Range factor from the fielding tables is now weighted by position, so a
+  shortstop who cannot field costs real runs and the DH costs none.
+- **Real regulars, not a best-of.** The roster pack keeps the three players who
+  logged the most time at each franchise, era, and position — not the three
+  best. The tension in this genre comes from spinning a team that has nothing
+  you need, and that only exists if the data admits teams that had nothing.
 
 ## Design decisions that matter
 
@@ -134,14 +153,22 @@ replaces the seed data.
 
 ## Data and provenance
 
-The roster pack is hand-curated career lines — Hall of Famers alongside ordinary
-regulars, so the draft has real downside. Pre-2000 figures are the standard
-published career numbers; players with recent or ongoing careers carry rounded
-approximations. Negro Leagues players are included following MLB's 2020
-recognition of those records, which are less complete than post-1920 AL/NL
-bookkeeping.
+The roster pack is generated from the **Lahman Baseball Database / Chadwick
+Baseball Databank** — 2,662 players covering 30 franchises and 120 years, the
+three who logged the most time at each franchise, era, and position. Every rate,
+home-run rate, and fielding number traces back to real box scores.
 
-For exact, sourced, season-level data, run the importer:
+Negro Leagues players are carried by hand on top: MLB recognized those records
+in 2020, but the 2021 databank predates their integration. Their figures follow
+the published Seamheads / Negro Leagues Database numbers and are less complete
+than post-1920 AL/NL bookkeeping, and they carry a defensive rating of zero
+rather than an invented one.
+
+**The data is CC BY-SA 3.0.** That is a copyleft license with real attribution
+and ShareAlike obligations — see [DATA-LICENSE.md](DATA-LICENSE.md) before any
+commercial launch.
+
+To regenerate the pack:
 
 ```bash
 # 1. Download the Lahman database (CC BY-SA 3.0, 1871-present):
@@ -150,10 +177,9 @@ For exact, sourced, season-level data, run the importer:
 npm run import:lahman
 ```
 
-That emits `sports/baseball/players.generated.ts` in the same table format, with
-the best seasons per franchise/era/position. The Lahman data is CC BY-SA 3.0 —
-derived data inherits ShareAlike and must credit Sean Lahman, which is why the
-generated file is gitignored rather than committed without that decision.
+That emits `sports/baseball/players.generated.ts`. The importer is deliberately
+the only thing that touches the raw database, so swapping to a differently
+licensed source means changing one script.
 
 ## Getting started
 

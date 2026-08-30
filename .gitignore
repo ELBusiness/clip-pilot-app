@@ -8,5 +8,4 @@ next-env.d.ts
 .env.local
 .DS_Store
 data/lahman/
-sports/baseball/players.generated.ts
 dist/

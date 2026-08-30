@@ -152,7 +152,17 @@ export default function Game() {
 
   const candidates = useMemo(() => {
     if (!state?.spin || spinning) return []
-    return candidatesFor(ruleset, state, state.spin).sort((a, b) => a.name.localeCompare(b.name))
+    // Order the pick list the way the roster board reads — catchers first,
+    // then the infield, outfield, and arms. With twenty-odd players on a deep
+    // franchise, alphabetical order makes you hunt for the position you need.
+    const slotRank = new Map(ruleset.slots.map((slot, i) => [slot.id, i]))
+    const rankOf = (player: Player) => {
+      const slots = slotsForPlayer(ruleset, state, player)
+      return slots.reduce((best, slot) => Math.min(best, slotRank.get(slot.id) ?? 99), 99)
+    }
+    return candidatesFor(ruleset, state, state.spin).sort(
+      (a, b) => rankOf(a) - rankOf(b) || a.name.localeCompare(b.name),
+    )
   }, [ruleset, state, spinning])
 
   if (!state) return <main className="shell" />

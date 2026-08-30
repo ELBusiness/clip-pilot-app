@@ -196,8 +196,13 @@ test('era adjustment rebases a stat line into the modern run environment', () =>
   const adjustedModern = normalizedEra(modern)
 
   assert.ok(adjustedDeadball > 3.0, `expected deadball 2.17 to deflate, got ${adjustedDeadball}`)
-  assert.ok(Math.abs(adjustedModern - 2.17) < 0.05, 'a 2010s line is already at the reference')
-  assert.ok(adjustedDeadball > adjustedModern)
+  assert.ok(adjustedDeadball > adjustedModern, 'deadball should stay worse than the same modern line')
+  // A 2010s line needs no era correction, so only projection regression moves
+  // it — toward the 4.05 reference, never past it.
+  assert.ok(
+    adjustedModern > 2.17 && adjustedModern < 2.9,
+    `a 2010s 2.17 should regress modestly, got ${adjustedModern}`,
+  )
 
   // Hitters move the other way: 1960s offense was suppressed, so the same
   // slash line was worth more than it looks.
@@ -208,18 +213,22 @@ test('era adjustment rebases a stat line into the modern run environment', () =>
 
 test('BaseRuns is calibrated to real baseball and cannot exceed its baserunners', () => {
   // A league-average team should come out near the real 740 runs.
-  const average = baseRuns(0.25, 0.32, 0.405, 5500)
+  const average = baseRuns(0.25, 0.32, 0.405, 0.03, 5500)
   assert.ok(average > 690 && average < 790, `league average returned ${average}`)
 
   // Monotonic in quality.
-  assert.ok(baseRuns(0.3, 0.38, 0.5, 5500) > average)
-  assert.ok(baseRuns(0.21, 0.27, 0.32, 5500) < average)
+  assert.ok(baseRuns(0.3, 0.38, 0.5, 0.045, 5500) > average)
+  assert.ok(baseRuns(0.21, 0.27, 0.32, 0.015, 5500) < average)
 
   // The physical ceiling: runs can never exceed times-on-base. This is the
   // property a linear estimator lacks and the reason a stacked lineup used to
   // project past anything real.
-  for (const [avg, obp, slg] of [[0.4, 0.55, 0.9], [0.36, 0.5, 0.8], [0.34, 0.47, 0.69]] as const) {
-    const runs = baseRuns(avg, obp, slg, 5500)
+  for (const [avg, obp, slg, hrRate] of [
+    [0.4, 0.55, 0.9, 0.09],
+    [0.36, 0.5, 0.8, 0.07],
+    [0.34, 0.47, 0.69, 0.055],
+  ] as const) {
+    const runs = baseRuns(avg, obp, slg, hrRate, 5500)
     const onBase = obp * 5500
     assert.ok(runs < onBase, `runs ${runs} exceeded baserunners ${onBase}`)
     assert.ok(Number.isFinite(runs) && runs > 0)
@@ -250,6 +259,7 @@ test('the difficulty curve leaves the real record worth chasing', () => {
   }
 
   const mean = total / runs
-  assert.ok(mean > 88 && mean < 110, `a middling draft should land in the 90s-low 100s, got ${mean.toFixed(1)}`)
-  assert.ok(beatRecord / runs < 0.25, `a middling draft beat the all-time record ${beatRecord}/${runs} times`)
+  // A middling draft should be a good team, not an all-time one.
+  assert.ok(mean > 80 && mean < 105, `a middling draft should land in the 80s-90s, got ${mean.toFixed(1)}`)
+  assert.ok(beatRecord / runs < 0.15, `a middling draft beat the all-time record ${beatRecord}/${runs} times`)
 })
