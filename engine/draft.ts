@@ -26,14 +26,20 @@ export interface DraftState {
 
 export const REROLLS_PER_RUN = 1
 
-export function createDraft(ruleset: Ruleset, seed: number): DraftState {
+export function createDraft(
+  ruleset: Ruleset,
+  seed: number,
+  options: { rerolls?: number } = {},
+): DraftState {
   return {
     seed,
     sportId: ruleset.id,
     round: 1,
     picks: [],
     spin: null,
-    rerolls: REROLLS_PER_RUN,
+    // The daily runs with none: everyone gets the same draw, and being able to
+    // dodge a thin franchise would make the shared leaderboard meaningless.
+    rerolls: options.rerolls ?? REROLLS_PER_RUN,
     status: 'ready',
   }
 }

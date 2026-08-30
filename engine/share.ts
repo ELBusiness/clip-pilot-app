@@ -76,3 +76,34 @@ export function dailySeed(sportId: SportId, date = new Date()): number {
   }
   return h >>> 0
 }
+
+/** Day number since launch, used to label a daily run. */
+export function dailyNumber(date = new Date()): number {
+  const day = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+  const launch = Date.UTC(2026, 0, 1)
+  return Math.max(1, Math.floor((day - launch) / 86400000) + 1)
+}
+
+/** ISO date for the current daily, used to key stored results. */
+export function dailyKey(date = new Date()): string {
+  return date.toISOString().slice(0, 10)
+}
+
+/**
+ * Share text for a daily run.
+ *
+ * Deliberately does NOT include the picks. Everyone played the same spins, so
+ * the interesting question is what someone else did with them — revealing the
+ * roster answers that question and kills the reason to open the game. The
+ * record and the day are enough to start the argument.
+ */
+export function dailyShareText(record: string, wins: number, day: number): string {
+  const bar = renderBar(wins)
+  return `162-0 Daily #${day}\n${record}\n${bar}`
+}
+
+/** A small visual of how close the run got, in the spirit of a Wordle grid. */
+function renderBar(wins: number): string {
+  const filled = Math.max(0, Math.min(10, Math.round((wins / 162) * 10)))
+  return '\u25a0'.repeat(filled) + '\u25a1'.repeat(10 - filled)
+}

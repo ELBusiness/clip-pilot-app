@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { baseball } from '@/sports'
+import { playerRating } from '@/sports/baseball'
 import {
   candidatesFor,
   createDraft,
@@ -14,13 +15,42 @@ import {
   type DraftState,
 } from '@/engine/draft'
 import { runSeason, type RunResult } from '@/engine/run'
-import { encodeRun, seedCode } from '@/engine/share'
+import { dailyKey, dailyNumber, dailySeed, dailyShareText, encodeRun, seedCode } from '@/engine/share'
 import type { Combo, Player, Ruleset } from '@/engine/types'
 import SeasonReport from './SeasonReport'
 
 /** How long the reel cycles before it settles, in ms. */
 const SPIN_MS = 850
 const SPIN_TICK = 70
+
+/** Where a finished daily run is remembered, so it cannot be replayed. */
+const DAILY_STORE = 'perfect-season:daily'
+
+type Mode = 'free' | 'daily'
+
+interface StoredDaily {
+  date: string
+  record: string
+  wins: number
+}
+
+/** localStorage can throw outright in private windows; never let that break the game. */
+function readDaily(): StoredDaily | null {
+  try {
+    const raw = window.localStorage.getItem(DAILY_STORE)
+    return raw ? (JSON.parse(raw) as StoredDaily) : null
+  } catch {
+    return null
+  }
+}
+
+function writeDaily(value: StoredDaily): void {
+  try {
+    window.localStorage.setItem(DAILY_STORE, JSON.stringify(value))
+  } catch {
+    // A viewer who blocks site data just gets to replay the daily. Not fatal.
+  }
+}
 
 export default function Game() {
   const ruleset = baseball
@@ -31,6 +61,8 @@ export default function Game() {
   const [pending, setPending] = useState<Player | null>(null)
   const [result, setResult] = useState<RunResult | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [mode, setMode] = useState<Mode>('free')
+  const [dailyDone, setDailyDone] = useState<StoredDaily | null>(null)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
   const clearTimers = () => {
@@ -71,19 +103,28 @@ export default function Game() {
   )
 
   const start = useCallback(
-    (seed: number) => {
+    (seed: number, nextMode: Mode = 'free') => {
       setResult(null)
       setPending(null)
-      const next = spin(ruleset, createDraft(ruleset, seed))
+      setMode(nextMode)
+      // No re-spins in the daily: everyone faces the same draw, so dodging a
+      // thin franchise would make comparing records meaningless.
+      const draft = createDraft(ruleset, seed, nextMode === 'daily' ? { rerolls: 0 } : {})
+      const next = spin(ruleset, draft)
       setState(next)
       animateTo(next)
     },
     [ruleset, animateTo],
   )
 
-  // A seed in the URL replays someone else's exact draft.
+  // A seed in the URL replays someone else's exact draft; ?daily opens today's.
   useEffect(() => {
+    setDailyDone(readDaily())
     const url = new URL(window.location.href)
+    if (url.searchParams.has('daily')) {
+      start(dailySeed('baseball'), 'daily')
+      return clearTimers
+    }
     const fromUrl = url.searchParams.get('seed')
     const parsed = fromUrl ? parseInt(fromUrl, 36) : NaN
     start(Number.isFinite(parsed) ? parsed : (Math.random() * 0xffffffff) >>> 0)
@@ -106,7 +147,13 @@ export default function Game() {
     setState(next)
 
     if (next.status === 'complete') {
-      setResult(runSeason(ruleset, next))
+      const finished = runSeason(ruleset, next)
+      setResult(finished)
+      if (mode === 'daily' && finished) {
+        const record = { date: dailyKey(), record: finished.season.record, wins: finished.season.wins }
+        writeDaily(record)
+        setDailyDone(record)
+      }
     } else {
       animateTo(next)
     }
@@ -123,10 +170,23 @@ export default function Game() {
   const share = async () => {
     if (!state) return
     const url = new URL(window.location.href)
-    url.searchParams.set('seed', seedCode(state.seed).toLowerCase())
-    const text = result
-      ? `${result.season.record} in ${ruleset.slug} ${ruleset.sport}. Beat my seed:`
-      : `Try my ${ruleset.slug} seed:`
+    url.search = ''
+
+    // The daily card shows the record and nothing else. Everyone played the
+    // same spins, so revealing the roster answers the only interesting
+    // question and removes the reason to open the game.
+    let text: string
+    if (mode === 'daily') {
+      url.searchParams.set('daily', '1')
+      text = result
+        ? dailyShareText(result.season.record, result.season.wins, dailyNumber())
+        : `162-0 Daily #${dailyNumber()}`
+    } else {
+      url.searchParams.set('seed', seedCode(state.seed).toLowerCase())
+      text = result
+        ? `${result.season.record} in ${ruleset.slug} ${ruleset.sport}. Beat my seed:`
+        : `Try my ${ruleset.slug} seed:`
+    }
     try {
       if (navigator.share) {
         await navigator.share({ title: 'Perfect Season', text, url: url.toString() })
@@ -145,24 +205,40 @@ export default function Game() {
     () => ruleset.franchises.find((f) => f.id === combo?.franchiseId),
     [ruleset, combo],
   )
-  const era = useMemo(
-    () => ruleset.eras.find((e) => e.id === combo?.eraId),
-    [ruleset, combo],
-  )
+  /**
+   * Label the reel with the years this franchise actually fielded players in
+   * this era, not the era's full span. The Mariners did not exist until 1977,
+   * so "Seattle Mariners, 1960s-70s" reads like a bug even though the bucket
+   * is correct.
+   */
+  const eraLabel = useMemo(() => {
+    const era = ruleset.eras.find((e) => e.id === combo?.eraId)
+    if (!combo || !era) return era?.label ?? ''
+    const years = ruleset.players
+      .filter((p) => p.franchiseId === combo.franchiseId && p.eraId === combo.eraId)
+      .map((p) => p.year)
+    if (years.length === 0) return era.label
+    const first = Math.min(...years)
+    const last = Math.max(...years)
+    // Only narrow the label when the franchise really was absent for much of
+    // the era; otherwise the decade name reads better.
+    const span = era.endYear - era.startYear
+    if (first - era.startYear < span * 0.25 && era.endYear - last < span * 0.25) {
+      return era.label
+    }
+    return first === last ? `${first}` : `${first}-${last}`
+  }, [ruleset, combo])
 
   const candidates = useMemo(() => {
     if (!state?.spin || spinning) return []
-    // Order the pick list the way the roster board reads — catchers first,
-    // then the infield, outfield, and arms. With twenty-odd players on a deep
-    // franchise, alphabetical order makes you hunt for the position you need.
-    const slotRank = new Map(ruleset.slots.map((slot, i) => [slot.id, i]))
-    const rankOf = (player: Player) => {
-      const slots = slotsForPlayer(ruleset, state, player)
-      return slots.reduce((best, slot) => Math.min(best, slotRank.get(slot.id) ?? 99), 99)
-    }
-    return candidatesFor(ruleset, state, state.spin).sort(
-      (a, b) => rankOf(a) - rankOf(b) || a.name.localeCompare(b.name),
-    )
+    // Best player first. Baseball stat lines are unreadable to a newcomer —
+    // nobody new can tell whether ".276/.346/.362" beats "3.41 ERA" — so the
+    // list is ordered by the same runs-above-average the simulation scores, and
+    // each card carries that number. Sorting by position instead would hide the
+    // one thing a new player actually needs to know.
+    return candidatesFor(ruleset, state, state.spin)
+      .map((player) => ({ player, rating: playerRating(player) }))
+      .sort((a, b) => b.rating.score - a.rating.score || a.player.name.localeCompare(b.player.name))
   }, [ruleset, state, spinning])
 
   if (!state) return <main className="shell" />
@@ -172,10 +248,12 @@ export default function Game() {
       <SeasonReport
         ruleset={ruleset}
         result={result}
+        mode={mode}
+        dayNumber={dailyNumber()}
         seedLabel={seedCode(state.seed)}
         shareCode={encodeRun(state)}
         onShare={share}
-        onReplay={() => start((Math.random() * 0xffffffff) >>> 0)}
+        onReplay={() => start((Math.random() * 0xffffffff) >>> 0, 'free')}
         toast={toast}
       />
     )
@@ -188,7 +266,9 @@ export default function Game() {
   return (
     <main className="shell">
       <div className="topbar">
-        <span className="round-pill">162-0 · MLB</span>
+        <span className="round-pill">
+          {mode === 'daily' ? `Daily #${dailyNumber()}` : '162-0 · MLB'}
+        </span>
         <span className="round-pill">
           Pick {Math.min(filled + 1, total)} of {total}
         </span>
@@ -201,7 +281,7 @@ export default function Game() {
         <div className="reel-inner">
           <div className="reel-label">Draft from</div>
           <div className="reel-team">{franchise?.name ?? '—'}</div>
-          <div className="reel-era">{era?.label ?? ''}</div>
+          <div className="reel-era">{eraLabel}</div>
         </div>
       </div>
 
@@ -224,23 +304,52 @@ export default function Game() {
       ) : (
         <>
           <p className="pick-prompt">
-            {spinning ? 'Spinning…' : `${candidates.length} available`}
+            {spinning
+              ? 'Spinning…'
+              : `${candidates.length} available · best first`}
           </p>
           <div className="candidates">
-            {candidates.map((player) => (
+            {candidates.map(({ player, rating }) => (
               <button key={player.id} className="cand" onClick={() => choose(player)}>
                 <span className="cand-pos">{player.positions.join('/')}</span>
                 <span className="cand-body">
                   <span className="cand-name">{player.name}</span>
                   <span className="cand-stat num">{ruleset.statLine(player)}</span>
+                  <span className="cand-label">{rating.label}</span>
+                </span>
+                <span className={`cand-rating num ${ratingTier(rating.score)}`}>
+                  {rating.score}
                 </span>
               </button>
             ))}
           </div>
           <div className="btn-row">
-            <button className="btn ghost" onClick={onReroll} disabled={state.rerolls <= 0 || spinning}>
-              {state.rerolls > 0 ? `Re-spin (${state.rerolls} left)` : 'No re-spins left'}
-            </button>
+            {mode === 'daily' ? (
+              <button
+                className="btn ghost"
+                onClick={() => start(dailySeed('baseball'), 'daily')}
+                disabled={spinning}
+              >
+                Restart today's draft
+              </button>
+            ) : (
+              <button
+                className="btn ghost"
+                onClick={onReroll}
+                disabled={state.rerolls <= 0 || spinning}
+              >
+                {state.rerolls > 0 ? `Re-spin (${state.rerolls} left)` : 'No re-spins left'}
+              </button>
+            )}
+            {mode === 'free' && (
+              <button
+                className="btn ghost"
+                onClick={() => start(dailySeed('baseball'), 'daily')}
+                disabled={spinning}
+              >
+                {dailyDone?.date === dailyKey() ? `Daily · ${dailyDone.record}` : 'Play the Daily'}
+              </button>
+            )}
           </div>
         </>
       )}
@@ -248,6 +357,14 @@ export default function Game() {
       {toast && <div className="toast">{toast}</div>}
     </main>
   )
+}
+
+/** Rating bands, so the number is readable at a glance and not just a number. */
+function ratingTier(score: number): string {
+  if (score >= 80) return 'elite'
+  if (score >= 65) return 'good'
+  if (score >= 45) return 'ok'
+  return 'poor'
 }
 
 function RosterBoard({

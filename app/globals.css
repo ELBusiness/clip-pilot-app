@@ -280,6 +280,9 @@ button {
   align-items: center;
   gap: 12px;
   width: 100%;
+  /* Without this the long stat line pushes the rating past the card's edge. */
+  min-width: 0;
+  overflow: hidden;
   text-align: left;
   padding: 13px 14px;
   background: var(--bg-card);
@@ -329,6 +332,45 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Plain-English read on the player, for anyone who does not parse slash lines. */
+.cand-label {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  margin-top: 3px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The rating is the anchor of the card: one number, always in the same place,
+   so a list of twenty players can be scanned in a couple of seconds. */
+.cand-rating {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  min-width: 34px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.cand-rating.elite {
+  color: var(--good);
+}
+
+.cand-rating.good {
+  color: #9fe08a;
+}
+
+.cand-rating.ok {
+  color: var(--text-dim);
+}
+
+.cand-rating.poor {
+  color: var(--bad);
 }
 
 /* ---------- Slot chooser ---------- */

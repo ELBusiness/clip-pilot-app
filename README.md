@@ -94,17 +94,65 @@ quietly generous rather than places the game was tuned wrong:
   best. The tension in this genre comes from spinning a team that has nothing
   you need, and that only exists if the data admits teams that had nothing.
 
+## Reading the game without knowing baseball
+
+Baseball's stat lines are unreadable to a newcomer. `.276/.346/.362` and
+`3.41 ERA` are not comparable to each other, and neither one tells you whether
+the player is any good — a 3.41 ERA was extraordinary in 1968 and ordinary in
+1999.
+
+So every player carries a **0-99 rating** and a plain-English label, and the
+pick list is sorted best-first. The rating is not a separate scale invented for
+the card: it is the player's **runs above what a league-average player produces
+over a season**, which is the exact currency the season simulation runs on. A
+bat's hitting and fielding and an arm's run prevention all reduce to it, which
+makes them directly comparable and makes the number honest — it ranks players
+by precisely what the game rewards.
+
+50 is a league-average regular. The pool's median is 53. Babe Ruth rates 99;
+Bill Bergen, the standard example of the worst hitter in major league history,
+rates 12. A test asserts both, and asserts that the top-rated bat really does
+outscore the bottom-rated one in the simulation, so the rating can never drift
+away from what the sim actually does.
+
+Pitchers top out near 79 where bats reach 99. That is not a bug in the scale —
+you draft nine bats and four arms, so a single bat is worth more to this roster
+than a single arm. The rating tells you the truth about the trade.
+
+## The Daily Challenge
+
+Everyone gets the same spins, once a day, with **no re-spins**. You cannot dodge
+a thin franchise, so the skill is squeezing the best roster out of whatever the
+date hands you, and the argument becomes about choices rather than luck.
+
+The share card carries the record, the day number, and a small progress bar —
+and deliberately **not the roster**. Everyone played the same draft, so the only
+interesting question is what someone else did with it. Revealing the picks
+answers that question and removes the reason to open the game.
+
+```text
+162-0 Daily #63
+118-44
+■■■■■■■□□□
+```
+
+Today's result is remembered locally, so the daily reads as a single attempt
+rather than something to grind.
+
 ## Design decisions that matter
 
-**Nine picks, one per position.** The roster is the nine fielding positions, 1
-through 9 on a scorecard — baseball's answer to 82-0's starting five. The whole
-team on the field, short enough to play in a couple of minutes.
+**A full roster, thirteen picks.** The nine in the batting order plus three
+starters and a closer. One pitcher meant every team ended up with a
+near-league-average staff, which flattened the win distribution.
 
-**Ordinary players in the pool.** A pool made only of legends means every spin
-is a good spin, which removes the entire tension of the draft. Alongside the
-Hall of Famers are real everyday regulars — some good, some genuinely poor bats
-kept in the lineup for their glove — so landing on a thin franchise/era actually
-costs you something.
+**Real regulars, not a best-of.** The roster pack keeps the three players who
+logged the most *time* at each franchise, era, and position — not the three
+best. The tension in this genre comes from spinning a team that has nothing you
+need, and that only exists if the data admits teams that had nothing.
+
+**Honest era labels.** The reel shows the years a franchise actually fielded
+players in that bucket, so the Mariners never appear under "1960s-70s" when
+they did not exist until 1977.
 
 **No dead spins.** The genre's worst failure is landing on a franchise/era with
 nobody you can legally play; it reads as the game being broken rather than as a

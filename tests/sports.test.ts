@@ -2,11 +2,12 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
 import { baseball } from '../sports'
-import { baseRuns, normalizedBatting, normalizedEra } from '../sports/baseball'
+import { baseRuns, normalizedBatting, normalizedEra, playerRating } from '../sports/baseball'
 
 /** The game ships as one sport; keep the loops so a second pack is a one-line change. */
 const SPORTS = [baseball]
-import { createDraft, spin, pick, candidatesFor, slotsForPlayer, eligibleCombos, openSlots } from '../engine/draft'
+import { createDraft, spin, pick, candidatesFor, slotsForPlayer, eligibleCombos, openSlots, reroll } from '../engine/draft'
+import { dailyKey, dailyNumber, dailySeed, dailyShareText } from '../engine/share'
 import { runSeason } from '../engine/run'
 import { parsePlayers } from '../sports/parse'
 
@@ -262,4 +263,98 @@ test('the difficulty curve leaves the real record worth chasing', () => {
   // A middling draft should be a good team, not an all-time one.
   assert.ok(mean > 80 && mean < 105, `a middling draft should land in the 80s-90s, got ${mean.toFixed(1)}`)
   assert.ok(beatRecord / runs < 0.15, `a middling draft beat the all-time record ${beatRecord}/${runs} times`)
+})
+
+test('player ratings rank the way a fan would expect', () => {
+  const byName = (name: string) =>
+    baseball.players.filter((p) => p.name === name).map((p) => playerRating(p))
+
+  const ruth = byName('Babe Ruth')[0]
+  const bergen = byName('Bill Bergen')[0]
+  assert.ok(ruth, 'Babe Ruth should be in the pool')
+  assert.ok(bergen, 'Bill Bergen should be in the pool')
+
+  // Ruth is the best hitter ever; Bergen is the standard example of the worst.
+  assert.ok(ruth.score > 90, `Ruth rated ${ruth.score}`)
+  assert.ok(bergen.score < 30, `Bergen rated ${bergen.score}`)
+
+  // 50 is a league-average regular, so the pool should centre near it.
+  const scores = baseball.players.map((p) => playerRating(p).score).sort((a, b) => a - b)
+  const median = scores[Math.floor(scores.length / 2)]!
+  assert.ok(median > 45 && median < 60, `pool median rating was ${median}`)
+  assert.equal(scores[0]! >= 1 && scores[scores.length - 1]! <= 99, true)
+
+  // The rating must agree with the simulation, or it is lying to the player:
+  // a higher-rated bat has to actually produce more runs.
+  const bats = baseball.players
+    .filter((p) => p.stats['era'] === undefined)
+    .map((p) => ({ p, r: playerRating(p) }))
+  const best = bats.sort((a, b) => b.r.score - a.r.score)[0]!
+  const worst = bats[bats.length - 1]!
+  const lineup = (player: typeof best.p) =>
+    baseball.slots
+      .filter((s) => s.group === 'Lineup')
+      .map((slot) => ({ player, slot }))
+  assert.ok(
+    baseball.rate(lineup(best.p)).offense > baseball.rate(lineup(worst.p)).offense,
+    'the top-rated bat should outscore the bottom-rated one',
+  )
+})
+
+test('every player carries a plain-English label', () => {
+  for (const player of baseball.players) {
+    const { label, score } = playerRating(player)
+    assert.ok(label.length > 0, `${player.name} has no label`)
+    assert.ok(Number.isInteger(score), `${player.name} has a non-integer rating`)
+  }
+})
+
+test('the daily challenge is the same for everyone and changes each day', () => {
+  const day1 = new Date('2026-03-04T00:00:00Z')
+  const day2 = new Date('2026-03-05T00:00:00Z')
+
+  // Same date, different callers, same draft — that is the whole premise.
+  assert.equal(dailySeed('baseball', day1), dailySeed('baseball', day1))
+  assert.notEqual(dailySeed('baseball', day1), dailySeed('baseball', day2))
+
+  // Time of day must not matter, or players in different timezones diverge.
+  assert.equal(
+    dailySeed('baseball', new Date('2026-03-04T23:59:00Z')),
+    dailySeed('baseball', day1),
+  )
+
+  assert.equal(dailyKey(day1), '2026-03-04')
+  assert.ok(dailyNumber(day2) === dailyNumber(day1) + 1)
+
+  // The daily runs with no re-spins.
+  const daily = createDraft(baseball, dailySeed('baseball', day1), { rerolls: 0 })
+  assert.equal(daily.rerolls, 0)
+  const spun = spin(baseball, daily)
+  assert.equal(reroll(baseball, spun), spun, 'a daily run must not be able to re-spin')
+
+  // Two players on the same day see identical spins.
+  const playThrough = () => {
+    let state = spin(baseball, createDraft(baseball, dailySeed('baseball', day1), { rerolls: 0 }))
+    const seen: string[] = []
+    let guard = 0
+    while (state.status === 'picking' && guard++ < 40) {
+      seen.push(`${state.spin!.franchiseId}:${state.spin!.eraId}`)
+      const candidates = candidatesFor(baseball, state, state.spin!)
+      const player = candidates[0]!
+      state = pick(baseball, state, player.id, slotsForPlayer(baseball, state, player)[0]!.id)
+    }
+    return seen
+  }
+  assert.deepEqual(playThrough(), playThrough())
+})
+
+test('the daily share card does not leak the roster', () => {
+  const text = dailyShareText('118-44', 118, 63)
+  assert.ok(text.includes('118-44'))
+  assert.ok(text.includes('#63'))
+  // Revealing picks would answer the only interesting question and remove the
+  // reason for the next person to open the game.
+  for (const player of baseball.players.slice(0, 200)) {
+    assert.ok(!text.includes(player.name), `share text leaked ${player.name}`)
+  }
 })

@@ -14,6 +14,8 @@ import type { Ruleset } from '@/engine/types'
 export default function SeasonReport({
   ruleset,
   result,
+  mode,
+  dayNumber,
   seedLabel,
   shareCode,
   onShare,
@@ -22,6 +24,8 @@ export default function SeasonReport({
 }: {
   ruleset: Ruleset
   result: RunResult
+  mode: 'free' | 'daily'
+  dayNumber: number
   seedLabel: string
   shareCode: string
   onShare: () => void
@@ -43,8 +47,12 @@ export default function SeasonReport({
   return (
     <main className="shell">
       <div className="topbar">
-        <span className="round-pill">162-0 · MLB</span>
-        <span className="round-pill">Seed {seedLabel}</span>
+        <span className="round-pill">
+          {mode === 'daily' ? `Daily #${dayNumber}` : '162-0 · MLB'}
+        </span>
+        <span className="round-pill">
+          {mode === 'daily' ? 'Same draft for everyone' : `Seed ${seedLabel}`}
+        </span>
       </div>
 
       <div className={`result-record num${season.perfect ? ' perfect' : ''}`}>
@@ -132,7 +140,7 @@ export default function SeasonReport({
       <div className="spacer" />
 
       <button className="btn" onClick={onShare}>
-        Share this run
+        {mode === 'daily' ? `Share Daily #${dayNumber}` : 'Share this run'}
       </button>
       <div className="btn-row">
         <button className="btn ghost" onClick={onReplay}>
@@ -140,9 +148,18 @@ export default function SeasonReport({
         </button>
       </div>
 
-      <p className="factor-detail" style={{ marginTop: 12, wordBreak: 'break-all' }}>
-        Run code: {shareCode}
-      </p>
+      {mode === 'daily' && (
+        <p className="factor-detail" style={{ marginTop: 10 }}>
+          Everyone gets the same spins today. The share card shows your record and
+          nothing else — let them build their own answer.
+        </p>
+      )}
+
+      {mode === 'free' && (
+        <p className="factor-detail" style={{ marginTop: 12, wordBreak: 'break-all' }}>
+          Run code: {shareCode}
+        </p>
+      )}
 
       {toast && <div className="toast">{toast}</div>}
     </main>

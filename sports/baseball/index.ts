@@ -251,6 +251,91 @@ export function baseRuns(
   return onBase * (advancement / (advancement + outs)) + homeRuns
 }
 
+
+/**
+ * A single 0-99 rating for any player, batter or pitcher.
+ *
+ * The point of this number is that baseball's stat lines are unreadable to
+ * someone new. ".276/.346/.362" and "3.41 ERA" are not comparable, and neither
+ * tells a newcomer whether the player is any good — a 3.41 ERA was
+ * extraordinary in 1968 and ordinary in 1999.
+ *
+ * So every player is converted into the one currency the simulation itself
+ * runs on: **runs above what a league-average player would produce over a
+ * season.** A bat's hitting and fielding and an arm's run prevention all reduce
+ * to that, which makes them directly comparable and makes the rating honest —
+ * it ranks players by exactly what the season simulation rewards, not by a
+ * separate scale invented for the card.
+ */
+export interface PlayerRating {
+  /** 0-99, where 50 is a league-average regular. */
+  score: number
+  /** Runs above average across a season. */
+  runs: number
+  /** Plain-English summary for someone who does not read slash lines. */
+  label: string
+}
+
+/** Innings a drafted starter and closer are credited with. */
+const STARTER_INNINGS = 200
+const CLOSER_INNINGS = 70
+/** Closers throw few innings but nearly all of them matter. */
+const CLOSER_LEVERAGE = 1.9
+
+/** Runs above average maps onto the 0-99 scale at this rate. */
+const RATING_PER_RUN = 0.85
+
+/** Runs an average lineup scores; the baseline every bat is measured against. */
+const LEAGUE_TEAM_RUNS = baseRuns(REF.avg, REF.obp, REF.slg, REF.hrRate, TEAM_AT_BATS)
+
+export function playerRating(player: Player): PlayerRating {
+  if (isPitcher(player.stats)) {
+    const era = normalizedEra(player)
+    const reliever = player.positions.includes('RP')
+    const innings = reliever ? CLOSER_INNINGS * CLOSER_LEVERAGE : STARTER_INNINGS
+    const runs = ((REF.era - era) * innings) / 9
+
+    return {
+      score: toScore(runs),
+      runs,
+      label: describeArm(era, reliever),
+    }
+  }
+
+  const n = normalizedBatting(player)
+  // Marginal value of one lineup slot: what the team would score with nine of
+  // this player, less what it scores with nine average ones, divided by nine.
+  const bat = (baseRuns(n.avg, n.obp, n.slg, n.hrRate, TEAM_AT_BATS) - LEAGUE_TEAM_RUNS) / 9
+  // Average positional weight, since the slot is not known at rating time.
+  const glove = (player.stats['def'] ?? 0) * 0.85 * RUNS_PER_DEF_SD
+  const runs = bat + glove
+
+  return { score: toScore(runs), runs, label: describeBat(bat, player.stats['def'] ?? 0) }
+}
+
+function toScore(runs: number): number {
+  return Math.max(1, Math.min(99, Math.round(50 + runs * RATING_PER_RUN)))
+}
+
+function describeArm(era: number, reliever: boolean): string {
+  const role = reliever ? 'reliever' : 'starter'
+  if (era <= 2.9) return `Ace ${role}`
+  if (era <= 3.5) return `Strong ${role}`
+  if (era <= 4.2) return `Solid ${role}`
+  return `Back-end ${role}`
+}
+
+function describeBat(batRuns: number, def: number): string {
+  const glove = def >= 0.7 ? 'elite glove' : def <= -0.7 ? 'poor glove' : null
+  const stick =
+    batRuns >= 30 ? 'Superstar bat'
+      : batRuns >= 15 ? 'Big bat'
+        : batRuns >= 3 ? 'Solid bat'
+          : batRuns >= -8 ? 'Light bat'
+            : 'Weak bat'
+  return glove ? `${stick}, ${glove}` : stick
+}
+
 function rate(roster: RatedPlayer[]): TeamRating {
   const batters = roster.filter((r) => !isPitcher(r.player.stats))
 
@@ -362,9 +447,7 @@ function statLine(player: Player): string {
   if (isPitcher(s)) {
     return `${(s['era'] ?? 0).toFixed(2)} ERA · ${s['w'] ?? 0} W · ${s['so'] ?? 0} K`
   }
-  const def = s['def'] ?? 0
-  const glove = def >= 0.75 ? ' · elite glove' : def <= -0.75 ? ' · poor glove' : ''
-  return `${pct3(s['avg'] ?? 0)}/${pct3(s['obp'] ?? 0)}/${pct3(s['slg'] ?? 0)} · ${s['hr'] ?? 0} HR${glove}`
+  return `${pct3(s['avg'] ?? 0)}/${pct3(s['obp'] ?? 0)}/${pct3(s['slg'] ?? 0)} · ${s['hr'] ?? 0} HR`
 }
 
 const compareKeys: CompareKey[] = [
