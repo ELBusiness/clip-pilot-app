@@ -153,9 +153,18 @@ roster as a baseball field.
   off to the side, because that is where they are. "SS" and "CF" are jargon
   until you see the position; the diagram is the sport's own and needs no
   legend.
-- **Two reels, team and era**, drawn separately the way a slot machine reads.
+- **Two reels, team and era**, drawn separately the way a slot machine reads,
+  and stopping at different times so each landing gets its own beat.
 - **An explicit SPIN button.** Auto-rolling straight into a list throws away the
   one moment of anticipation the genre has.
+- **A reel that decelerates, with sound.** Clicks are spaced by the inverse of
+  an ease-out curve, so they start about 50ms apart and finish 300ms apart —
+  the tail is where the tension is. Every click and thunk is synthesized with
+  the Web Audio API: the game ships as one self-contained file whose host blocks
+  external media, so a few oscillators cost a few hundred bytes where sound
+  files would cost hundreds of kilobytes and a network round trip. Audio stays
+  silent until the first tap, and Sounds and Haptics both have toggles, because
+  a game that makes noise with no way to stop it gets closed.
 - **A live projection** with the all-time 116-win mark drawn on the bar,
   updating on every pick. Empty slots project as league-average players, so it
   answers "if I stopped here, what would this team do?" That turns each pick

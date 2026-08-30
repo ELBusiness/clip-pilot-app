@@ -18,12 +18,75 @@ import {
 import { runSeason, type RunResult } from '@/engine/run'
 import { dailyKey, dailyNumber, dailySeed, dailyShareText, encodeRun, seedCode } from '@/engine/share'
 import type { Combo, Player, Ruleset } from '@/engine/types'
+import {
+  hapticsEnabled,
+  playLand,
+  playPick,
+  playReveal,
+  playTick,
+  resume,
+  setHapticsEnabled,
+  setSoundEnabled,
+  soundEnabled,
+  vibrate,
+} from '@/lib/sound'
 import Field from './Field'
 import SeasonReport from './SeasonReport'
 
-/** How long the reel cycles before it settles, in ms. */
-const SPIN_MS = 850
-const SPIN_TICK = 70
+/**
+ * Reel timing.
+ *
+ * A real slot machine decelerates: symbols fly past at first and crawl at the
+ * end, and the last two clicks are where all the tension lives. Ticks are
+ * therefore spaced by the inverse of an ease-out curve rather than evenly, so
+ * they start about 60ms apart and finish around 300ms apart.
+ *
+ * The two reels stop at different times, team first, so the era landing gets
+ * its own beat instead of being swallowed by a simultaneous stop.
+ */
+const TEAM_TICKS = 18
+const ERA_TICKS = 23
+const SPIN_MS = 2600
+
+/** Fastest and slowest gap between two clicks, in ms. */
+const MIN_GAP = 48
+const MAX_GAP = 300
+
+/**
+ * Times, in ms from the start, at which each reel symbol passes the window.
+ *
+ * Gaps come from the inverse of an ease-out curve, then get clamped. Without
+ * the clamp the curve puts the final symbol a full second after the one before
+ * it, which reads as the animation having frozen rather than as a reel slowing
+ * down. Capping the gap keeps the tail as three or four deliberate clicks,
+ * which is the part that actually feels like a slot machine.
+ */
+function tickSchedule(ticks: number, extraTail = 0): number[] {
+  const eased: number[] = []
+  for (let i = 1; i <= ticks; i += 1) {
+    // Inverse of easeOutCubic: solving 1-(1-u)^3 = i/n for u.
+    eased.push(SPIN_MS * (1 - Math.cbrt(1 - i / ticks)))
+  }
+
+  const times: number[] = []
+  let at = 0
+  let previous = 0
+  for (const target of eased) {
+    const gap = Math.min(MAX_GAP, Math.max(MIN_GAP, target - previous))
+    at += gap
+    times.push(at)
+    previous = target
+  }
+
+  // Extra clicks at the slowest pace, so the second reel visibly outlasts the
+  // first. Landing both at once wastes the stagger; landing the era a beat
+  // later gives it its own moment.
+  for (let i = 0; i < extraTail; i += 1) {
+    at += MAX_GAP
+    times.push(at)
+  }
+  return times
+}
 
 /** Where a finished daily run is remembered, so it cannot be replayed. */
 const DAILY_STORE = 'perfect-season:daily'
@@ -68,6 +131,14 @@ export default function Game() {
   const [phase, setPhase] = useState<'spin' | 'pick'>('spin')
   const [filter, setFilter] = useState<'all' | 'IF' | 'OF' | 'P'>('all')
   const [query, setQuery] = useState('')
+  /** Which franchise and era each reel currently shows while turning. */
+  const [teamDisplay, setTeamDisplay] = useState<string | null>(null)
+  const [eraDisplay, setEraDisplay] = useState<string | null>(null)
+  const [teamSettled, setTeamSettled] = useState(true)
+  const [eraSettled, setEraSettled] = useState(true)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [sound, setSound] = useState(true)
+  const [haptics, setHaptics] = useState(true)
   const [dailyDone, setDailyDone] = useState<StoredDaily | null>(null)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
@@ -91,24 +162,57 @@ export default function Game() {
         return
       }
 
+      const teams = [...new Set(pool.map((c) => c.franchiseId))]
+      const eras = [...new Set(pool.map((c) => c.eraId))]
+
       setSpinning(true)
+      setTeamSettled(false)
+      setEraSettled(false)
       setFilter('all')
       setQuery('')
-      let elapsed = 0
-      const tick = () => {
-        elapsed += SPIN_TICK
-        if (elapsed >= SPIN_MS) {
-          setDisplay(next.spin)
-          setSpinning(false)
-          // The pick list only appears once the reel has stopped, so the spin
-          // gets its own beat instead of being scenery behind a list.
-          setPhase('pick')
-          return
-        }
-        setDisplay(pool[Math.floor(Math.random() * pool.length)] ?? next.spin)
-        timers.current.push(setTimeout(tick, SPIN_TICK))
-      }
-      timers.current.push(setTimeout(tick, SPIN_TICK))
+      void resume()
+
+      // The outcome is already decided; this only plays it out, so a seed
+      // replays identically however the animation is interrupted.
+      const teamTimes = tickSchedule(TEAM_TICKS)
+      const eraTimes = tickSchedule(ERA_TICKS, 2)
+
+      teamTimes.forEach((at, i) => {
+        const last = i === teamTimes.length - 1
+        timers.current.push(
+          setTimeout(() => {
+            setTeamDisplay(last ? next.spin!.franchiseId : (teams[i % teams.length] ?? next.spin!.franchiseId))
+            if (last) {
+              setTeamSettled(true)
+              playLand()
+              vibrate(18)
+            } else {
+              playTick()
+            }
+          }, at),
+        )
+      })
+
+      eraTimes.forEach((at, i) => {
+        const last = i === eraTimes.length - 1
+        timers.current.push(
+          setTimeout(() => {
+            setEraDisplay(last ? next.spin!.eraId : (eras[i % eras.length] ?? next.spin!.eraId))
+            if (last) {
+              setEraSettled(true)
+              playLand()
+              vibrate([22, 40, 22])
+              setDisplay(next.spin)
+              setSpinning(false)
+              // The pick list appears only once both reels have stopped, so the
+              // spin keeps its own beat instead of being scenery behind a list.
+              setPhase('pick')
+            } else {
+              playTick()
+            }
+          }, at),
+        )
+      })
     },
     [ruleset],
   )
@@ -126,6 +230,10 @@ export default function Game() {
       const next = spin(ruleset, draft)
       setState(next)
       setDisplay(next.spin)
+      setTeamDisplay(next.spin?.franchiseId ?? null)
+      setEraDisplay(next.spin?.eraId ?? null)
+      setTeamSettled(true)
+      setEraSettled(true)
       setPhase('spin')
       setSpinning(false)
     },
@@ -135,6 +243,8 @@ export default function Game() {
   // A seed in the URL replays someone else's exact draft; ?daily opens today's.
   useEffect(() => {
     setDailyDone(readDaily())
+    setSound(soundEnabled())
+    setHaptics(hapticsEnabled())
     const url = new URL(window.location.href)
     if (url.searchParams.has('daily')) {
       start(dailySeed('baseball'), 'daily')
@@ -160,10 +270,14 @@ export default function Game() {
     const next = commitPick(ruleset, state, player.id, target)
     setPending(null)
     setState(next)
+    playPick()
+    vibrate(10)
 
     if (next.status === 'complete') {
       const finished = runSeason(ruleset, next)
       setResult(finished)
+      playReveal()
+      vibrate([30, 60, 30, 60, 60])
       if (mode === 'daily' && finished) {
         const record = { date: dailyKey(), record: finished.season.record, wins: finished.season.wins }
         writeDaily(record)
@@ -171,6 +285,8 @@ export default function Game() {
       }
     } else {
       setDisplay(next.spin)
+      setTeamDisplay(next.spin?.franchiseId ?? null)
+      setEraDisplay(next.spin?.eraId ?? null)
       setPhase('spin')
     }
   }
@@ -223,9 +339,13 @@ export default function Game() {
   }
 
   const combo = display
+  /** What the team reel is showing right now — mid-spin or settled. */
+  const shownTeamId = teamDisplay ?? combo?.franchiseId
+  const shownEraId = eraDisplay ?? combo?.eraId
+
   const franchise = useMemo(
-    () => ruleset.franchises.find((f) => f.id === combo?.franchiseId),
-    [ruleset, combo],
+    () => ruleset.franchises.find((f) => f.id === shownTeamId),
+    [ruleset, shownTeamId],
   )
   /**
    * Label the reel with the years this franchise actually fielded players in
@@ -234,10 +354,10 @@ export default function Game() {
    * is correct.
    */
   const eraLabel = useMemo(() => {
-    const era = ruleset.eras.find((e) => e.id === combo?.eraId)
-    if (!combo || !era) return era?.label ?? ''
+    const era = ruleset.eras.find((e) => e.id === shownEraId)
+    if (!shownTeamId || !shownEraId || !era) return era?.label ?? ''
     const years = ruleset.players
-      .filter((p) => p.franchiseId === combo.franchiseId && p.eraId === combo.eraId)
+      .filter((p) => p.franchiseId === shownTeamId && p.eraId === shownEraId)
       .map((p) => p.year)
     if (years.length === 0) return era.label
     const first = Math.min(...years)
@@ -249,7 +369,7 @@ export default function Game() {
       return era.label
     }
     return first === last ? `${first}` : `${first}-${last}`
-  }, [ruleset, combo])
+  }, [ruleset, shownTeamId, shownEraId])
 
   const candidates = useMemo(() => {
     if (!state?.spin || spinning) return []
@@ -303,18 +423,45 @@ export default function Game() {
         <span className="round-pill">
           Pick {Math.min(filled + 1, total)} of {total}
         </span>
+        <button
+          className="icon-btn"
+          onClick={() => setMenuOpen(true)}
+          aria-label="Settings and how to play"
+        >
+          ☰
+        </button>
       </div>
 
+      {menuOpen && (
+        <SettingsSheet
+          sound={sound}
+          haptics={haptics}
+          onSound={(on) => {
+            setSound(on)
+            setSoundEnabled(on)
+            if (on) playPick()
+          }}
+          onHaptics={(on) => {
+            setHaptics(on)
+            setHapticsEnabled(on)
+            if (on) vibrate(20)
+          }}
+          onClose={() => setMenuOpen(false)}
+        />
+      )}
+
       <div className="reels">
-        <div className={`reel-card team${spinning ? ' rolling' : ' landed'}`}>
+        <div className={`reel-card team${teamSettled ? ' landed' : ' rolling'}`}>
           <span className="reel-kicker">Team</span>
-          <span className="reel-value">
-            {franchise ? franchiseNameFor(franchise, combo?.eraId) : '—'}
+          <span className="reel-value" key={shownTeamId ?? 'none'}>
+            {franchise ? franchiseNameFor(franchise, shownEraId) : '—'}
           </span>
         </div>
-        <div className={`reel-card era${spinning ? ' rolling' : ' landed'}`}>
+        <div className={`reel-card era${eraSettled ? ' landed' : ' rolling'}`}>
           <span className="reel-kicker">Era</span>
-          <span className="reel-value">{eraLabel || '—'}</span>
+          <span className="reel-value" key={shownEraId ?? 'none'}>
+            {eraLabel || '—'}
+          </span>
         </div>
       </div>
 
@@ -349,7 +496,7 @@ export default function Game() {
         <>
           <div className="pick-head">
             <span className="pill team">
-              {franchise ? franchiseNameFor(franchise, combo?.eraId) : '—'}
+              {franchise ? franchiseNameFor(franchise, shownEraId) : '—'}
             </span>
             <span className="pill era">{eraLabel}</span>
             {mode === 'free' && (
@@ -409,6 +556,73 @@ export default function Game() {
 
       {toast && <div className="toast">{toast}</div>}
     </main>
+  )
+}
+
+/**
+ * Settings and a short how-to.
+ *
+ * The sound toggle is not optional politeness: a game that makes noise with no
+ * way to stop it gets closed. Haptics are separate because Android honours them
+ * and iOS Safari ignores them entirely, so a player may want one without the
+ * other.
+ */
+function SettingsSheet({
+  sound,
+  haptics,
+  onSound,
+  onHaptics,
+  onClose,
+}: {
+  sound: boolean
+  haptics: boolean
+  onSound: (on: boolean) => void
+  onHaptics: (on: boolean) => void
+  onClose: () => void
+}) {
+  return (
+    <div className="sheet-backdrop" onClick={onClose} role="presentation">
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-head">
+          <strong>162-0</strong>
+          <button className="icon-btn" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+
+        <h3 className="section-head">How to play</h3>
+        <ol className="howto">
+          <li>Spin for a franchise and an era.</li>
+          <li>Draft one player from that team into an open position.</li>
+          <li>Fill all thirteen spots, then play the 162-game season.</li>
+        </ol>
+        <p className="factor-detail" style={{ marginBottom: 16 }}>
+          The number on each card is runs above an average player over a season —
+          50 is average, 99 is Babe Ruth. Stats are adjusted for the era they
+          were put up in, so a 1913 ERA is not treated like a modern one.
+        </p>
+
+        <label className="toggle-row">
+          <span>Sounds</span>
+          <input
+            type="checkbox"
+            checked={sound}
+            onChange={(e) => onSound(e.target.checked)}
+          />
+          <span className="toggle" aria-hidden="true" />
+        </label>
+
+        <label className="toggle-row">
+          <span>Haptics</span>
+          <input
+            type="checkbox"
+            checked={haptics}
+            onChange={(e) => onHaptics(e.target.checked)}
+          />
+          <span className="toggle" aria-hidden="true" />
+        </label>
+      </div>
+    </div>
   )
 }
 
