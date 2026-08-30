@@ -139,6 +139,27 @@ answers that question and removes the reason to open the game.
 Today's result is remembered locally, so the daily reads as a single attempt
 rather than something to grind.
 
+## Interface
+
+The draft screen is built around one constraint: a phone, held in one hand,
+where the pick list is the only thing you actually touch.
+
+- **A compact roster strip, not a card grid.** Thirteen slots as two rows of
+  chips showing each pick's rating. The card-grid version ate three-fifths of
+  the screen and pushed the pick list below the fold; the strip moved it up
+  roughly 190px.
+- **A live projection.** A running record with the all-time 116-win mark drawn
+  on the bar, updating on every pick. Empty slots project as league-average
+  players, so it answers "if I stopped here, what would this team do?" — which
+  turns each pick into a visible consequence instead of a guess, and teaches a
+  newcomer what good looks like without a tutorial.
+- **The reel carries the franchise's colours** and drops each name in from
+  above, settling with a short overshoot, so a spin reads as a spin. A dark
+  scrim keeps white type legible over any team's palette.
+- **Historical club names.** The reel says Brooklyn Dodgers, Philadelphia
+  Athletics, St. Louis Browns, Montreal Expos — not the modern franchise that
+  eventually inherited those players.
+
 ## Design decisions that matter
 
 **A full roster, thirteen picks.** The nine in the batting order plus three

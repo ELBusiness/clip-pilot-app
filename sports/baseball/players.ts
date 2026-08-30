@@ -21,7 +21,7 @@
 
 import type { Franchise, Era } from '@/engine/types'
 import { parsePlayers } from '../parse'
-import { GENERATED_FRANCHISES, GENERATED_PLAYERS } from './players.generated'
+import { ERA_NAMES, GENERATED_FRANCHISES, GENERATED_PLAYERS } from './players.generated'
 
 export const ERAS: Era[] = [
   { id: 'e20s', label: '1901-1939', startYear: 1901, endYear: 1939 },
@@ -31,6 +31,37 @@ export const ERAS: Era[] = [
   { id: 'e00s', label: '2000s', startYear: 2000, endYear: 2009 },
   { id: 'e10s', label: '2010s-20s', startYear: 2010, endYear: 2025 },
 ]
+
+/**
+ * What a club was called at the time. The databank resolves every season to the
+ * modern franchise, so without this the reel offers Andre Dawson under
+ * "Washington Nationals, 1970-1978" — and a game whose whole appeal is history
+ * loses the Brooklyn Dodgers, the Philadelphia Athletics and the St. Louis
+ * Browns entirely.
+ *
+ * One name is chosen per franchise and era, from the median season of the
+ * players actually offered there. A club that renamed mid-era (the Expos became
+ * the Nationals in 2005) therefore shows one label for the whole bucket, so a
+ * few players sit under the neighbouring name. Splitting those into separate
+ * franchises would fix it and is the obvious next step if it grates.
+ */
+export function franchiseNameFor(
+  franchise: Franchise | undefined,
+  eraId: string | undefined,
+): string {
+  if (!franchise) return ''
+  return (eraId && ERA_NAMES[`${franchise.id}:${eraId}`]) || franchise.name
+}
+
+/** Short label for a roster card, e.g. "Expos" rather than "Nationals". */
+export function franchiseShortFor(
+  franchise: Franchise | undefined,
+  eraId: string | undefined,
+): string {
+  if (!franchise) return ''
+  const full = franchiseNameFor(franchise, eraId)
+  return full === franchise.name ? franchise.short : (full.split(' ').slice(-1)[0] ?? full)
+}
 
 export const FRANCHISES: Franchise[] = [
   ...GENERATED_FRANCHISES,

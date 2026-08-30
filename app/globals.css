@@ -197,58 +197,234 @@ button {
 
 /* ---------- Slot machine ---------- */
 
+/*
+ * The reel is the moment of the game, so it gets real estate and real motion.
+ * The franchise's own colours flood it, which is both the identity cue and the
+ * thing that makes two consecutive spins feel different.
+ */
 .reel {
   position: relative;
   border-radius: var(--radius-lg);
-  padding: 20px 18px;
-  margin-bottom: 14px;
+  padding: 18px;
+  margin-bottom: 10px;
   border: 1px solid var(--line);
-  background: linear-gradient(180deg, var(--bg-card), var(--bg-raised));
+  background:
+    linear-gradient(150deg, var(--c1, #2a2f3a) 0%, var(--c2, #171a21) 55%, var(--bg-card) 100%);
   overflow: hidden;
+  min-height: 116px;
+  display: flex;
+  align-items: center;
 }
 
-.reel::before {
-  /* Club colour wash, set from the drawn franchise. */
+/* A dark scrim so white type stays legible over any team's palette. */
+.reel::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, var(--c1, #333) 0%, transparent 62%);
-  opacity: 0.4;
-  transition: opacity 0.3s ease;
+  background: linear-gradient(90deg, rgba(6, 7, 10, 0.82) 0%, rgba(6, 7, 10, 0.5) 100%);
+  pointer-events: none;
 }
 
 .reel-inner {
   position: relative;
+  z-index: 1;
+  width: 100%;
+  min-width: 0;
 }
 
 .reel-label {
-  font-size: 11.5px;
-  letter-spacing: 0.1em;
+  font-size: 11px;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: rgba(255, 255, 255, 0.62);
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
+}
+
+/* The viewport the reel scrolls inside. Fixed height so the page never jumps. */
+.reel-window {
+  height: 74px;
+  overflow: hidden;
+  position: relative;
+}
+
+.reel-slide {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 74px;
+}
+
+/* Each new franchise drops in from above, the way a physical reel settles. */
+.reel-slide.drop {
+  animation: reel-drop 0.16s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@keyframes reel-drop {
+  from {
+    transform: translateY(-46px);
+    opacity: 0.15;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* The landing beat: a short overshoot so the stop reads as a stop. */
+.reel-slide.settle {
+  animation: reel-settle 0.42s cubic-bezier(0.16, 1.2, 0.3, 1);
+}
+
+@keyframes reel-settle {
+  0% {
+    transform: translateY(-30px);
+    opacity: 0.4;
+  }
+  60% {
+    transform: translateY(4px);
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .reel-team {
-  font-size: clamp(25px, 7.5vw, 34px);
+  font-size: clamp(23px, 6.6vw, 31px);
   font-weight: 800;
   letter-spacing: -0.035em;
-  line-height: 1.05;
+  line-height: 1.06;
+  color: #fff;
+  text-wrap: balance;
 }
 
 .reel-era {
-  font-size: 15px;
-  color: var(--text-dim);
-  font-weight: 600;
-  margin-top: 3px;
+  font-size: 14.5px;
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 650;
+  margin-top: 4px;
 }
 
-.reel.spinning .reel-team,
-.reel.spinning .reel-era {
-  /* Blur while the reel cycles so it reads as motion, not as flicker. */
-  filter: blur(0.6px);
-  opacity: 0.85;
+/* ---------- Roster strip ---------- */
+
+/*
+ * Thirteen slots as a two-row chip strip instead of a card grid. The grid
+ * version ate three-fifths of a phone screen and pushed the pick list — the
+ * only thing you actually tap — below the fold.
+ */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.chip {
+  position: relative;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg-raised);
+  padding: 6px 2px 5px;
+  text-align: center;
+  min-height: 40px;
+  overflow: hidden;
+}
+
+.chip-pos {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  line-height: 1;
+}
+
+.chip-rating {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-top: 3px;
+  letter-spacing: -0.02em;
+}
+
+.chip.filled {
+  background: var(--bg-card);
+  border-color: var(--line-bright);
+}
+
+.chip.filled .chip-pos {
+  color: var(--text-dim);
+}
+
+.chip.empty .chip-rating {
+  color: var(--line-bright);
+}
+
+/* The slot the next pick will most likely fill. */
+.chip.next {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(245, 197, 24, 0.28);
+}
+
+/* ---------- Live projection ---------- */
+
+/*
+ * A running projection turns each pick into a visible consequence instead of a
+ * guess, which is the difference between a draft and a series of shrugs. Empty
+ * slots are projected as league-average players, so the number answers "if I
+ * stopped here, what would this team do?"
+ */
+.projection {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+}
+
+.projection-label {
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-weight: 700;
+}
+
+.projection-value {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.projection-bar {
+  position: relative;
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.projection-bar span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--good));
+  transition: width 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* Where the all-time record sits on that bar, so the target is visible. */
+.projection-bar i {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--text-faint);
+  border-radius: 1px;
 }
 
 /* ---------- Candidate list ---------- */

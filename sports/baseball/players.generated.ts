@@ -48,6 +48,34 @@ export const GENERATED_FRANCHISES: Franchise[] = [
   { id: 'WSN', name: "Washington Nationals", short: "Nationals", colors: ['#ab0003', '#14225a'] },
 ]
 
+/**
+ * What a club was called during a given era, keyed `franchise:era`. Only
+ * entries that differ from the modern name are listed.
+ */
+export const ERA_NAMES: Record<string, string> = {
+  "ATL:e20s": "Boston Braves",
+  "ATL:e40s": "Milwaukee Braves",
+  "BAL:e20s": "St. Louis Browns",
+  "BAL:e40s": "St. Louis Browns",
+  "LAA:e60s": "California Angels",
+  "LAA:e80s": "California Angels",
+  "LAD:e20s": "Brooklyn Robins",
+  "LAD:e40s": "Brooklyn Dodgers",
+  "MIA:e00s": "Florida Marlins",
+  "MIA:e80s": "Florida Marlins",
+  "MIN:e20s": "Washington Senators",
+  "MIN:e40s": "Washington Senators",
+  "OAK:e20s": "Philadelphia Athletics",
+  "OAK:e40s": "Philadelphia Athletics",
+  "SFG:e20s": "New York Giants",
+  "SFG:e40s": "New York Giants",
+  "TBR:e00s": "Tampa Bay Devil Rays",
+  "TBR:e80s": "Tampa Bay Devil Rays",
+  "WSN:e00s": "Montreal Expos",
+  "WSN:e60s": "Montreal Expos",
+  "WSN:e80s": "Montreal Expos",
+}
+
 const BATTERS = `
 George Sisler|BAL|e20s|1B|1921|0.344|0.374|0.481|93|351|-0.17|0.0139
 Tom Jones|BAL|e20s|1B|1906|0.247|0.275|0.296|3|117|0.70|0.0010

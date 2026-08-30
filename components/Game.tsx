@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { baseball } from '@/sports'
-import { playerRating } from '@/sports/baseball'
+import { playerRating, projectPartial } from '@/sports/baseball'
+import { franchiseNameFor } from '@/sports/baseball/players'
 import {
   candidatesFor,
   createDraft,
@@ -275,17 +276,33 @@ export default function Game() {
       </div>
 
       <div
-        className={`reel${spinning ? ' spinning' : ''}`}
-        style={{ ['--c1' as string]: franchise?.colors[0] ?? '#333' }}
+        className="reel"
+        style={{
+          ['--c1' as string]: franchise?.colors[0] ?? '#2a2f3a',
+          ['--c2' as string]: franchise?.colors[1] ?? '#171a21',
+        }}
       >
         <div className="reel-inner">
-          <div className="reel-label">Draft from</div>
-          <div className="reel-team">{franchise?.name ?? '—'}</div>
-          <div className="reel-era">{eraLabel}</div>
+          <div className="reel-label">{spinning ? 'Spinning' : 'Draft from'}</div>
+          <div className="reel-window">
+            {/* Keyed on the franchise so React remounts it and the drop
+                animation replays on every tick of the reel. */}
+            <div
+              key={`${combo?.franchiseId}-${combo?.eraId}-${spinning ? 'x' : 'stop'}`}
+              className={`reel-slide ${spinning ? 'drop' : 'settle'}`}
+            >
+              <div className="reel-team">
+                {franchise ? franchiseNameFor(franchise, combo?.eraId) : '—'}
+              </div>
+              <div className="reel-era">{eraLabel}</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <RosterBoard ruleset={ruleset} state={state} nextSlotId={nextSlot?.id} />
+      <Projection ruleset={ruleset} state={state} />
+
+      <RosterStrip ruleset={ruleset} state={state} nextSlotId={nextSlot?.id} />
 
       {pending ? (
         <>
@@ -367,7 +384,40 @@ function ratingTier(score: number): string {
   return 'poor'
 }
 
-function RosterBoard({
+/**
+ * A running projection of the finished team, with the all-time record marked on
+ * the bar. Empty slots project as league-average players, so the number answers
+ * "if I stopped here, what would this team do?" rather than flattering a roster
+ * of one superstar.
+ */
+function Projection({ ruleset, state }: { ruleset: Ruleset; state: DraftState }) {
+  const projected = useMemo(() => {
+    const roster = state.picks.flatMap((p) => {
+      const player = ruleset.players.find((x) => x.id === p.playerId)
+      const slot = ruleset.slots.find((x) => x.id === p.slotId)
+      return player && slot ? [{ player, slot }] : []
+    })
+    return projectPartial(roster)
+  }, [ruleset, state.picks])
+
+  const record = ruleset.benchmark.wins
+  const scale = (wins: number) => Math.max(0, Math.min(100, ((wins - 50) / 112) * 100))
+
+  return (
+    <div className="projection">
+      <span className="projection-label">Projected</span>
+      <span className="projection-bar">
+        <span style={{ width: `${scale(projected.wins)}%` }} />
+        <i style={{ left: `${scale(record)}%` }} title={`Record: ${record} wins`} />
+      </span>
+      <span className="projection-value num">
+        {projected.wins}-{ruleset.seasonGames - projected.wins}
+      </span>
+    </div>
+  )
+}
+
+function RosterStrip({
   ruleset,
   state,
   nextSlotId,
@@ -377,25 +427,22 @@ function RosterBoard({
   nextSlotId?: string
 }) {
   return (
-    <div className="board">
+    <div className="strip">
       {ruleset.slots.map((slot) => {
         const pick = state.picks.find((p) => p.slotId === slot.id)
         const player = pick && ruleset.players.find((p) => p.id === pick.playerId)
-        const franchise = pick && ruleset.franchises.find((f) => f.id === pick.franchiseId)
-        const cls = player ? '' : slot.id === nextSlotId ? ' empty next' : ' empty'
+        const rating = player ? playerRating(player) : null
+
         return (
-          <div key={slot.id} className={`board-slot${cls}`}>
-            <div className="board-pos">{slot.id}</div>
-            {player ? (
-              <>
-                <div className="board-name">{player.name}</div>
-                <div className="board-team">{franchise?.short}</div>
-              </>
-            ) : (
-              <div className="board-name" style={{ color: 'var(--text-faint)' }}>
-                {slot.label}
-              </div>
-            )}
+          <div
+            key={slot.id}
+            className={`chip ${player ? 'filled' : 'empty'}${slot.id === nextSlotId && !player ? ' next' : ''}`}
+            title={player ? `${slot.label}: ${player.name}` : slot.label}
+          >
+            <div className="chip-pos">{slot.id}</div>
+            <div className={`chip-rating num ${rating ? ratingTier(rating.score) : ''}`}>
+              {rating ? rating.score : '—'}
+            </div>
           </div>
         )
       })}

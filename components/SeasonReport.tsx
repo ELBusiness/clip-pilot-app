@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { RunResult } from '@/engine/run'
 import type { Ruleset } from '@/engine/types'
+import { franchiseShortFor } from '@/sports/baseball/players'
 
 /**
  * The result screen carries the whole share loop, so it has to answer three
@@ -130,7 +131,7 @@ export default function SeasonReport({
               <div className="board-pos">{slot.id}</div>
               <div className="board-name">{player.name}</div>
               <div className="board-team">
-                {franchise?.short} · {player.year}
+                {franchiseShortFor(franchise, player.eraId)} · {player.year}
               </div>
             </div>
           )

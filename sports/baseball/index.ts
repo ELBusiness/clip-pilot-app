@@ -463,6 +463,48 @@ const compareKeys: CompareKey[] = [
   { key: 'whip', label: 'WHIP', higherIsBetter: false, format: (v) => v.toFixed(2) },
 ]
 
+/**
+ * Project a half-finished roster.
+ *
+ * Empty slots are filled with a league-average player rather than ignored,
+ * because averaging over only the players drafted so far would say a roster of
+ * one superstar is the best team ever. Filling the gaps with average bodies
+ * answers the question the player is actually asking mid-draft: "if I stopped
+ * here, what would this team do?"
+ */
+export function projectPartial(picks: RatedPlayer[]): {
+  wins: number
+  rating: TeamRating
+} {
+  const filledSlots = new Set(picks.map((p) => p.slot.id))
+
+  const averageBat: Player = {
+    id: '__avg_bat', name: 'Average', franchiseId: '', eraId: '', positions: [], year: 2015,
+    stats: { avg: REF.avg, obp: REF.obp, slg: REF.slg, hrRate: REF.hrRate, def: 0, hr: 0, sb: 0 },
+  }
+  const averageArm: Player = {
+    id: '__avg_arm', name: 'Average', franchiseId: '', eraId: '', positions: [], year: 2015,
+    stats: { era: REF.era, w: 0, so: 0, whip: 1.3 },
+  }
+
+  const full: RatedPlayer[] = [
+    ...picks,
+    ...SLOTS.filter((slot) => !filledSlots.has(slot.id)).map((slot) => ({
+      slot,
+      player: slot.group === 'Rotation' || slot.group === 'Bullpen' ? averageArm : averageBat,
+    })),
+  ]
+
+  const rating = rate(full)
+  const scored = rating.offense * SEASON_GAMES
+  const allowed = rating.defense * SEASON_GAMES
+  const exponent = Math.pow((scored + allowed) / SEASON_GAMES, 0.287)
+  const winPct =
+    Math.pow(scored, exponent) / (Math.pow(scored, exponent) + Math.pow(allowed, exponent))
+
+  return { wins: Math.round(winPct * SEASON_GAMES), rating }
+}
+
 export const baseball: Ruleset = {
   id: 'baseball',
   slug: '162-0',

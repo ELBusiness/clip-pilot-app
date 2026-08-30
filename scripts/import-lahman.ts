@@ -167,13 +167,24 @@ function main(): void {
   const franchiseOf = new Map<string, string>()
   const seasonCount = new Map<string, number>()
   const franchiseName = new Map<string, string>()
+
+  // What the club was actually *called* in a given season. Lahman resolves
+  // every season to the modern franchise, so without this the reel offers Andre
+  // Dawson and Steve Rogers under "Washington Nationals, 1970-1978" when they
+  // were Montreal Expos — and the Philadelphia Athletics, Brooklyn Dodgers, and
+  // St. Louis Browns all vanish from a game whose whole appeal is history.
+  const nameByYear = new Map<string, string>()
+
   for (const row of teams) {
     const raw = row['franchID'] ?? ''
     if (!raw) continue
     const id = FRANCHISE_RENAME[raw] ?? raw
-    franchiseOf.set(`${row['teamID']}:${row['yearID']}`, id)
+    const year = num(row['yearID'])
+    franchiseOf.set(`${row['teamID']}:${year}`, id)
     seasonCount.set(id, (seasonCount.get(id) ?? 0) + 1)
     franchiseName.set(id, row['name'] ?? id)
+
+    nameByYear.set(`${id}:${year}`, row['name'] ?? id)
   }
 
   // Keep the franchises a fan recognizes: the 30 with the longest histories.
@@ -440,6 +451,34 @@ function main(): void {
   const usedFranchises = new Set(
     [...keptBatters, ...keptPitchers].map((c) => c.franchise),
   )
+
+  // Name each franchise/era from the median season of the players actually
+  // offered there, not from an era-wide vote. The Expos became the Nationals in
+  // 2005, mid-era, so a vote across 2000-2009 mislabels half the decade.
+  const yearsByBucket = new Map<string, number[]>()
+  for (const card of [...keptBatters, ...keptPitchers]) {
+    const key = `${card.franchise}:${card.era}`
+    const list = yearsByBucket.get(key) ?? []
+    list.push(card.year)
+    yearsByBucket.set(key, list)
+  }
+
+  const eraNames = new Map<string, string>()
+  for (const [key, years] of yearsByBucket) {
+    const id = key.split(':')[0] ?? ''
+    years.sort((a, b) => a - b)
+    const median = years[Math.floor(years.length / 2)]
+    if (median === undefined) continue
+    // Walk outward if that exact season is missing (strike years, relocations).
+    for (let offset = 0; offset <= 6; offset += 1) {
+      const hit =
+        nameByYear.get(`${id}:${median - offset}`) ?? nameByYear.get(`${id}:${median + offset}`)
+      if (hit) {
+        eraNames.set(key, hit)
+        break
+      }
+    }
+  }
   const franchiseLines = [...usedFranchises]
     .sort()
     .map((id) => {
@@ -448,6 +487,17 @@ function main(): void {
       const short = full.split(' ').slice(-1)[0] ?? id
       return `  { id: '${id}', name: ${JSON.stringify(full)}, short: ${JSON.stringify(short)}, colors: ['${c1}', '${c2}'] },`
     })
+    .join('\n')
+
+  // Only emit a historical name where it differs from the modern one; the rest
+  // is noise in the generated file.
+  const eraNameLines = [...eraNames.entries()]
+    .filter(([key, name]) => {
+      const id = key.split(':')[0] ?? ''
+      return usedFranchises.has(id) && name !== franchiseName.get(id)
+    })
+    .sort()
+    .map(([key, name]) => `  ${JSON.stringify(key)}: ${JSON.stringify(name)},`)
     .join('\n')
 
   const file = `/**
@@ -470,6 +520,14 @@ import { parsePlayers } from '../parse'
 export const GENERATED_FRANCHISES: Franchise[] = [
 ${franchiseLines}
 ]
+
+/**
+ * What a club was called during a given era, keyed \`franchise:era\`. Only
+ * entries that differ from the modern name are listed.
+ */
+export const ERA_NAMES: Record<string, string> = {
+${eraNameLines}
+}
 
 const BATTERS = \`
 ${keptBatters.map(toRow).join('\n')}
