@@ -23,7 +23,16 @@ const result = await build({
   target: ['es2020'],
   jsx: 'automatic',
   write: false,
-  define: { 'process.env.NODE_ENV': '"production"' },
+  // esbuild substitutes only what is named here. Anything else reaching for
+  // `process` in a browser is a ReferenceError at module load — a blank page,
+  // not a degraded one — so every env var the app reads has to be listed.
+  define: {
+    'process.env.NODE_ENV': '"production"',
+    'process.env.NEXT_PUBLIC_BASE_PATH': JSON.stringify(process.env.BASE_PATH ?? ''),
+    'process.env.NEXT_PUBLIC_SITE_URL': JSON.stringify(
+      process.env.SITE_URL ?? 'https://162-0.app',
+    ),
+  },
   // esbuild reads the '@/*' paths mapping straight from tsconfig, so module
   // resolution stays identical to the Next build.
   tsconfig: join(root, 'tsconfig.json'),

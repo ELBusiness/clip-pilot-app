@@ -37,14 +37,18 @@ jobs:
           node-version: 22
           cache: npm
 
-      # The asset renderer needs a browser; the app and its tests do not.
       - run: npm ci
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
 
       # A broken build is not worth publishing, and these take seconds.
       - run: npm run typecheck
       - run: npm test
+
+      # Typecheck and tests both pass on a bundle that renders a blank page —
+      # neither one loads it. This does, and it is the only thing here that
+      # would have caught the ReferenceError that shipped once already.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build:standalone
+      - run: npm run verify:build
 
       # Deliberately without `enablement: true`. The workflow token can deploy
       # to Pages but cannot create the site — that call comes back "Resource

@@ -7,10 +7,29 @@
  * production while working perfectly on localhost.
  */
 
-export const BASE_PATH = (process.env['NEXT_PUBLIC_BASE_PATH'] ?? '').replace(/\/$/, '')
+/**
+ * Reading an env var without assuming `process` exists.
+ *
+ * Next replaces `process.env.NEXT_PUBLIC_*` with a literal at build time, so
+ * the web build never evaluates this. The single-file build is bundled by
+ * esbuild, which substitutes only what its `define` names — and a bare
+ * `process` reference in a browser is a ReferenceError at module load, which
+ * takes the whole app down to a blank page before a single component renders.
+ * This module is imported by the game itself, so it must not assume a bundler
+ * was configured correctly.
+ */
+function env(name: string): string | undefined {
+  try {
+    return typeof process === 'undefined' ? undefined : process.env[name]
+  } catch {
+    return undefined
+  }
+}
+
+export const BASE_PATH = (env('NEXT_PUBLIC_BASE_PATH') ?? '').replace(/\/$/, '')
 
 /** Origin only, no path. The metadata layer joins this to `asset()` paths. */
-export const SITE_URL = process.env['NEXT_PUBLIC_SITE_URL'] ?? 'https://162-0.app'
+export const SITE_URL = env('NEXT_PUBLIC_SITE_URL') ?? 'https://162-0.app'
 
 /** A root-relative path with the deployment's base path applied. */
 export function asset(path: string): string {
