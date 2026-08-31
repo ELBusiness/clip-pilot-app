@@ -237,8 +237,14 @@ will keep offering you first basemen and will not keep offering you shortstops.
 When a player is clearly above his position's going rate, the card says so and
 names the spot: **+29 at SS**.
 
-The number is shown faintly on every empty slot in the position dock, so the
-information is there while you are choosing rather than in a menu.
+**In words, on the card, and nowhere else.** The going rate was also printed on
+every empty slot in the position dock, which is real information that entirely
+failed to communicate: the same small number in the same place meant a drafted
+player's rating on one cell and a forecast on the next, thirteen at once with
+no label. Extracting "shortstop is thin" from it meant scanning and comparing
+thirteen two-digit numbers in 27px cells. Asked what they were, the first
+answer back was "random numbers" — so they are gone, and the dock does the one
+job it is good at: showing which positions are filled and with whom.
 
 **DH and closer never carry the flag.** Any hitter can DH and any arm can close,
 so their pools are the widest on the board and their medians mean nothing — the

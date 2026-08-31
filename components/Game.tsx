@@ -746,7 +746,6 @@ export default function Game() {
           <Dock
             ruleset={ruleset}
             state={state}
-            outlook={outlook}
             eligibleSlotIds={pendingSlots.map((slot) => slot.id)}
             onSlotTap={(slotId) => pending && choose(pending, slotId)}
           />
@@ -863,11 +862,11 @@ function SettingsSheet({
           were put up in, so a 1913 ERA is not treated like a modern one.
         </p>
         <p className="factor-detail" style={{ marginBottom: 16 }}>
-          The faded number on an empty position is what is <em>typically</em>{' '}
-          still available there. Shortstops run about 42 and first basemen 59, so
-          a decent shortstop is worth taking the moment one appears — waiting
-          rarely pays. When a player is well clear of his position&rsquo;s going
-          rate, his card says so and names the spot.
+          Positions are not equally deep. Shortstops left in the pool run about
+          42 and first basemen 59, so a decent shortstop is worth taking the
+          moment one appears — waiting rarely pays. When a player is well clear
+          of what his position is still paying, his card says so and names the
+          spot.
         </p>
         <p className="factor-detail" style={{ marginBottom: 16 }}>
           DH and closer never carry that flag: any hitter can DH and any arm can
@@ -954,14 +953,11 @@ function SettingsSheet({
 function Dock({
   ruleset,
   state,
-  outlook,
   eligibleSlotIds,
   onSlotTap,
 }: {
   ruleset: Ruleset
   state: DraftState
-  /** Typical rating still available at each position. */
-  outlook: Map<string, Outlook>
   /** Slots the player being placed can take. Empty when nobody is selected. */
   eligibleSlotIds: string[]
   onSlotTap: (slotId: string) => void
@@ -986,12 +982,17 @@ function Dock({
             onClick={() => onSlotTap(slot.id)}
           >
             <span className="dock-pos">{slot.id}</span>
-            {/* Filled slots show what you got; open ones show what the position
-                is typically worth, so a thin position is visible before you
-                spend a pick discovering it. */}
-            <span className={`dock-rating num${rating ? '' : ' expected'}`}>
-              {rating ? rating.score : expectedAt(outlook.get(slot.id))}
-            </span>
+            {/*
+              Only what you actually have. This used to carry the going rate on
+              every empty slot too — the median still available at that
+              position — which is real information and completely failed to say
+              so: the same small number in the same place meant a drafted
+              player's rating on one cell and a forecast on the next, thirteen
+              of them at once with no label. It read as noise, so it went. The
+              scarcity flag on the player cards says the same thing in words,
+              at the moment it decides something.
+            */}
+            <span className="dock-rating num">{rating ? rating.score : ''}</span>
           </button>
         )
       })}
@@ -1014,11 +1015,6 @@ function Recycle() {
       <path d="M4.5 14.2v-2.9h2.9" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
-}
-
-/** A position with nothing left in it shows a dash, not a zero. */
-function expectedAt(outlook: Outlook | undefined): string | number {
-  return outlook && outlook.count > 0 ? outlook.typical : '\u2014'
 }
 
 /**

@@ -1301,19 +1301,9 @@ button {
   font-weight: 800;
   line-height: 1.25;
   color: var(--safe);
-}
-
-.dock-slot:not(.filled) .dock-rating {
-  color: var(--chalk-faint);
-}
-
-/* An empty slot carries the going rate for that position rather than a dash.
-   It has to read as a forecast and not as a player you already have, so it is
-   lighter, narrower and set apart from the solid numbers beside it. */
-.dock-rating.expected {
-  font-weight: 600;
-  font-style: italic;
-  opacity: 0.75;
+  /* Empty cells keep the line's height so the strip does not change shape as
+     positions fill. */
+  min-height: 13px;
 }
 
 /* ---------- Pick screen controls ---------- */
