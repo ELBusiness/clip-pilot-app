@@ -555,9 +555,12 @@ nothing, and a spike in traffic costs nothing either.
 ### The one-click path: GitHub Pages
 
 `.github/workflows/deploy.yml` typechecks, tests and publishes on every push to
-the development branch. **One-time setup:** repository Settings → Pages → set
-Source to *GitHub Actions*. No tokens, no accounts, nothing to pay for. The
-site then lives at `https://<user>.github.io/<repo>/`.
+the development branch, and turns Pages on itself the first time it runs. No
+setup, no tokens, no accounts, nothing to pay for. The site lives at
+`https://<user>.github.io/<repo>/`.
+
+The repository has to be public, or on a plan that includes Pages for private
+repositories — that is the one thing the workflow cannot do for you.
 
 ### Anywhere else
 
