@@ -54,29 +54,28 @@ function sampleScore(rng: Rng, mean: number, context: LeagueContext): number {
 }
 
 /**
- * Play one game against an opponent of the given quality.
+ * Play one game between two sides.
  *
- * Opponent quality shifts both sides: a strong opponent scores more and
- * concedes less. Each side's expectation is its own rate adjusted by how far
- * the other side sits from league average, which keeps the league's total
- * scoring roughly stable instead of letting good defenses deflate the whole
- * simulation.
+ * Each side's expectation is its own scoring rate adjusted by how far the
+ * other's run prevention sits from league average, which keeps the league's
+ * total scoring roughly stable instead of letting good defenses deflate the
+ * whole simulation. It is symmetric, so it serves both a scheduled game
+ * against a drawn opponent and a series against a specific historical team —
+ * one formula rather than two that can drift apart.
  */
-function playGame(
+export function playMatch(
   rng: Rng,
-  rating: TeamRating,
+  us: Pick<TeamRating, 'offense' | 'defense'>,
+  them: Pick<TeamRating, 'offense' | 'defense'>,
   context: LeagueContext,
-  opponentQuality: number,
   drawsPossible: boolean,
 ): GameResult {
   const league = context.averageScore
-  const opponentOffense = league + opponentQuality
-  const opponentDefense = league - opponentQuality
 
   // Our expected output: our offense, moved by how good their defense is.
-  const scoredMean = rating.offense * (opponentDefense / league)
+  const scoredMean = us.offense * (them.defense / league)
   // Theirs: their offense, moved by how good our defense is.
-  const allowedMean = opponentOffense * (rating.defense / league)
+  const allowedMean = them.offense * (us.defense / league)
 
   let scored = sampleScore(rng, scoredMean, context)
   let allowed = sampleScore(rng, allowedMean, context)
@@ -101,6 +100,28 @@ function playGame(
     scored > allowed ? 'W' : scored < allowed ? 'L' : 'D'
 
   return { scored, allowed, outcome }
+}
+
+/**
+ * A scheduled game against an opponent of the given quality. Quality is a
+ * single number because the league is a distribution, not a list of clubs: a
+ * strong opponent both scores more and concedes less.
+ */
+function playGame(
+  rng: Rng,
+  rating: TeamRating,
+  context: LeagueContext,
+  opponentQuality: number,
+  drawsPossible: boolean,
+): GameResult {
+  const league = context.averageScore
+  return playMatch(
+    rng,
+    rating,
+    { offense: league + opponentQuality, defense: league - opponentQuality },
+    context,
+    drawsPossible,
+  )
 }
 
 export function simulateSeason(

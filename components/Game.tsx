@@ -396,9 +396,15 @@ export default function Game() {
         : `162-0 Daily #${dailyNumber()}`
     } else {
       url.searchParams.set('seed', seedCode(state.seed).toLowerCase())
-      text = result
-        ? `${result.season.record} in ${ruleset.slug} ${ruleset.sport}. Beat my seed:`
-        : `Try my ${ruleset.slug} seed:`
+      // The series is the better brag when there is one: "beat the 1927
+      // Yankees" travels further than a win total, and it names an opponent
+      // the person reading it has an opinion about.
+      const series = result?.series
+      text = series?.won
+        ? `${result!.season.record}, and beat the ${series.opponent.name} ${series.opponent.record} in the series. Try my seed:`
+        : result
+          ? `${result.season.record} in ${ruleset.slug} ${ruleset.sport}. Beat my seed:`
+          : `Try my ${ruleset.slug} seed:`
     }
     try {
       if (navigator.share) {

@@ -100,6 +100,12 @@ export interface LeagueContext {
 }
 
 export interface Ruleset {
+  /**
+   * Legendary teams a strong season earns a series against. Optional: a sport
+   * pack without a curated list simply never stages one.
+   */
+  opponents?: import('./series').Opponent[]
+
   id: SportId
   /** URL slug and the game's public name, e.g. '162-0'. */
   slug: string

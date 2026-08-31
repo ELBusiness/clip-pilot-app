@@ -72,6 +72,8 @@ export default function SeasonReport({
 
       {outcome && <PersonalBest outcome={outcome} wins={season.wins} />}
 
+      <Series result={result} />
+
       <div className="stat-strip">
         <div className="stat-cell">
           <b className="num">{season.scored.toLocaleString()}</b>
@@ -171,6 +173,55 @@ export default function SeasonReport({
 
       {toast && <div className="toast">{toast}</div>}
     </main>
+  )
+}
+
+/**
+ * The series, which is the sharper of the two results.
+ *
+ * A win total is a number. "Beat the 1927 Yankees in six" is the argument
+ * every baseball fan has already had, and it is the thing worth telling
+ * someone. Falling short of October says so plainly rather than hiding it —
+ * the cut is what gives the win total a second consequence.
+ */
+function Series({ result }: { result: RunResult }) {
+  const { series, season, seriesLine } = result
+
+  if (!series) {
+    const short = seriesLine - season.wins
+    return (
+      <div className="series missed">
+        <b>No October</b>
+        <span>
+          {short} {short === 1 ? 'win' : 'wins'} short of a series against an
+          all-time team. {seriesLine} gets you there.
+        </span>
+      </div>
+    )
+  }
+
+  const { opponent, games, won, line } = series
+  return (
+    <div className={`series${won ? ' won' : ' lost'}`}>
+      <b>{won ? `Beat the ${opponent.name}` : `Lost to the ${opponent.name}`}</b>
+      <span className="series-line">
+        <span className="num">{line}</span> in {games.length}
+      </span>
+      <span className="series-note">
+        {opponent.note} They went {opponent.record}.
+      </span>
+      <span className="series-games">
+        {games.map((g, i) => (
+          <i
+            key={i}
+            className={g.outcome === 'W' ? 'w' : 'l'}
+            title={`Game ${i + 1}: ${g.scored}-${g.allowed}`}
+          >
+            {g.scored}–{g.allowed}
+          </i>
+        ))}
+      </span>
+    </div>
   )
 }
 

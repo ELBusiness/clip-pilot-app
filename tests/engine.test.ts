@@ -5,7 +5,9 @@ import { createRng, deriveSeed, hashSeed } from '../engine/rng'
 import { pythagoreanWinPct, pythagenpatExponent, simulateSeason } from '../engine/season'
 import { decodeRun, encodeRun, seedCode, dailySeed } from '../engine/share'
 import { createDraft, spin, pick, candidatesFor, slotsForPlayer, eligibleCombos, openSlots, reroll, rerollOptions } from '../engine/draft'
-import { runSeason } from '../engine/run'
+import { runSeason, SERIES_WINS } from '../engine/run'
+import { simulateSeries } from '../engine/series'
+import { BOSSES, BOSS_SEASONS } from '../sports/baseball/bosses'
 import { baseball } from '../sports'
 
 const SPORTS = [baseball]
@@ -293,4 +295,117 @@ test('a shared link points somewhere a friend can actually open', async () => {
     withWindow({}, () => { throw new Error('cross-origin') }, 'https://sandbox.test/_frame/9f8a/'),
     `${SITE_URL}/`,
   )
+})
+
+test('every boss record matches what that team actually did', () => {
+  // These are hand-entered from the historical record, so the guard is that
+  // each one is internally consistent: a team's runs should predict its wins.
+  // A digit typed wrong in a run total shows up here as a Pythagorean
+  // expectation that no longer lands near the record it is paired with.
+  for (const season of BOSS_SEASONS) {
+    const games = season.wins + season.losses
+    assert.ok(games >= 140 && games <= 165, `${season.id}: ${games} games is not a season`)
+
+    const expected = pythagoreanWinPct(season.runsScored, season.runsAllowed, games) * games
+    assert.ok(
+      Math.abs(expected - season.wins) < 8,
+      `${season.id}: ${season.runsScored}/${season.runsAllowed} predicts ${expected.toFixed(0)} wins, record says ${season.wins}`,
+    )
+    // All of them were genuinely great; a merely good team is not a boss.
+    assert.ok(season.wins / games > 0.66, `${season.id} did not win enough to be a boss`)
+  }
+})
+
+test('a boss from a low-scoring era is not made to look feeble', () => {
+  const deadball = BOSSES.find((b) => b.id === 'chn1906')!
+  const modern = BOSSES.find((b) => b.id === 'bos2018')!
+
+  // The 1906 Cubs scored 4.7 a game in a league where that was a lot. Left
+  // unscaled they would look punchless beside a 2018 team; scaled, their run
+  // prevention is the best on the board, which is what they actually were.
+  assert.ok(deadball.offense > 5, `1906 offense reads as ${deadball.offense.toFixed(2)} a game`)
+  assert.ok(
+    deadball.defense < modern.defense,
+    'the 1906 Cubs should still prevent runs better than the 2018 Red Sox',
+  )
+  // And the scaling preserves who was better: their run ratio is unchanged.
+  const ratio = (o: { offense: number; defense: number }) => o.offense / o.defense
+  assert.ok(ratio(deadball) > ratio(modern))
+})
+
+test('a series is best-of-seven and stops when it is decided', () => {
+  const context = baseball.context
+  const good = { offense: 5.4, defense: 3.9 }
+  const boss = BOSSES[0]!
+
+  for (let seed = 1; seed <= 60; seed += 1) {
+    const s = simulateSeries(good, boss, context, createRng(seed))
+    assert.ok(s.games.length >= 4 && s.games.length <= 7, `${s.games.length} games is not a best-of-seven`)
+    assert.equal(Math.max(s.wins, s.losses), 4, 'a series ends at four wins')
+    assert.equal(s.wins + s.losses, s.games.length)
+    assert.equal(s.won, s.wins > s.losses)
+    // The line is written winner first, the way a series result is written.
+    assert.equal(s.line, s.won ? `${s.wins}-${s.losses}` : `${s.losses}-${s.wins}`)
+  }
+})
+
+test('a series replays identically and rewards the better team', () => {
+  const context = baseball.context
+  const boss = BOSSES.find((b) => b.id === 'sea2001')!
+
+  const a = simulateSeries({ offense: 5.2, defense: 4.0 }, boss, context, createRng(99))
+  const b = simulateSeries({ offense: 5.2, defense: 4.0 }, boss, context, createRng(99))
+  assert.deepEqual(a.games, b.games, 'the same seed should replay the same series')
+
+  // Short series are mostly noise on purpose, but not pure noise: a far better
+  // team has to win clearly more often than it loses.
+  let strong = 0
+  let weak = 0
+  for (let seed = 1; seed <= 300; seed += 1) {
+    if (simulateSeries({ offense: 6.6, defense: 3.2 }, boss, context, createRng(seed)).won) strong += 1
+    if (simulateSeries({ offense: 4.2, defense: 4.8 }, boss, context, createRng(seed)).won) weak += 1
+  }
+  assert.ok(strong > 210, `a far better team won only ${strong}/300`)
+  assert.ok(weak < 90, `a worse team won ${weak}/300`)
+  assert.ok(strong > weak * 2)
+})
+
+test('the series is earned, and earning it does not disturb the season', () => {
+  const ruleset = baseball
+  let below: number | null = null
+  let above: number | null = null
+
+  for (let seed = 1; seed <= 40; seed += 1) {
+    let state = createDraft(ruleset, seed)
+    while (state.status !== 'complete') {
+      state = spin(ruleset, state)
+      if (!state.spin) break
+      const best = candidatesFor(ruleset, state, state.spin)[0]
+      if (!best) break
+      const slot = slotsForPlayer(ruleset, state, best)[0]
+      if (!slot) break
+      state = pick(ruleset, state, best.id, slot.id)
+    }
+    const run = runSeason(ruleset, state)
+    if (!run) continue
+
+    // The cut is the only thing that decides whether there is a series.
+    assert.equal(
+      run.series !== null,
+      run.season.wins >= SERIES_WINS,
+      `${run.season.wins} wins against a ${SERIES_WINS}-win cut`,
+    )
+    assert.equal(run.seriesLine, SERIES_WINS)
+    if (run.series) above ??= seed
+    else below ??= seed
+
+    // The series draws on a stream of its own, so re-running a seed gives the
+    // same season whether or not one was staged.
+    const again = runSeason(ruleset, state)!
+    assert.equal(again.season.record, run.season.record)
+    assert.deepEqual(again.series?.games, run.series?.games)
+  }
+
+  assert.ok(above !== null, 'no draft in 40 seeds earned a series')
+  assert.ok(below !== null, 'no draft in 40 seeds missed the cut — it is not a cut')
 })

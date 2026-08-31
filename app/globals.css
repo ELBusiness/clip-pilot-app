@@ -1687,6 +1687,91 @@ button {
   margin-bottom: 20px;
 }
 
+/* ---------- The series ---------- */
+
+/*
+ * The sharper of the two results, so it gets a card of its own directly under
+ * the record. Winning is the only thing on this screen that takes the accent
+ * as a fill — it is the rarest outcome the game produces, at roughly a third
+ * of the seasons that earn a series.
+ */
+.series {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  border-radius: var(--r);
+  background: var(--panel);
+}
+
+.series b {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--chalk);
+}
+
+.series-line {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--chalk-dim);
+}
+
+.series-line .num {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--chalk);
+}
+
+.series-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--chalk-faint);
+  margin-top: 2px;
+}
+
+/* Each game's score, so the series reads as games rather than a summary. */
+.series-games {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.series-games i {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--inset);
+  color: var(--chalk-faint);
+}
+
+.series-games i.w {
+  background: color-mix(in srgb, var(--safe) 20%, var(--inset));
+  color: var(--safe);
+}
+
+.series.won {
+  background: color-mix(in srgb, var(--bulb) 16%, var(--panel));
+}
+
+.series.won b {
+  color: var(--bulb);
+}
+
+.series.missed b {
+  color: var(--chalk-dim);
+}
+
+.series.missed span {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--chalk-faint);
+}
+
 /* ---------- Personal best ---------- */
 
 /*

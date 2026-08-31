@@ -66,6 +66,54 @@ the correct pick is often not the highest number on the screen, and the game
 becomes about what you give up rather than what you take. See
 [Position scarcity](#position-scarcity).
 
+## The series
+
+A win total is a number. *Beat the 1927 Yankees in six* is the argument every
+baseball fan has already had.
+
+So a season strong enough earns a best-of-seven against one of twelve
+legendary teams, drawn from the seed so each draft gets a different one. Their
+records are real — Murderers' Row, the 1906 Cubs, the Big Red Machine, the
+2001 Mariners — and they play at their real strength:
+
+| | Record | Runs scored / allowed |
+|---|---|---|
+| 1906 Cubs | 116-36 | 705 / 381 |
+| 1927 Yankees | 110-44 | 975 / 599 |
+| 2001 Mariners | 116-46 | 927 / 627 |
+| 1939 Yankees | 106-45 | 967 / 556 |
+| …and eight more | | |
+
+Their run rates are rebased into the game's own scoring environment the same
+way every player's line is, because the 1906 Cubs scored 4.7 a game in a league
+where that was a lot. Left unscaled they would look punchless next to a modern
+club; scaled, their run prevention is the best on the board, which is what it
+actually was. Both rates move by the same factor, so the differential that made
+them great survives.
+
+**Beating one is hard on purpose.** Measured across 200 drafts, teams that
+reach a series win it **35%** of the time. Short series are mostly noise, which
+is the point rather than a flaw: the better team loses often enough that
+winning is worth something and losing is not an indictment.
+
+**And it has to be earned.** The cut is 98 wins — not baseball's real playoff
+line near 90, because these are all-star rosters whose win totals run high and
+borrowing that number would make the series automatic. It is set by
+measurement instead:
+
+| | Median wins | Reach 98 |
+|---|---|---|
+| Near-optimal play | 106 | 88% |
+| Looser play | 99 | 56% |
+
+So a well-played draft is usually rewarded and a loose one is a coin flip —
+which finally gives the win total a second consequence besides its distance
+from an unreachable 116.
+
+The idea comes from the "boss mode" several competing 162-0 clones advertise.
+What is here is our own: a real simulation between two real run profiles,
+rather than a badge for beating a number.
+
 ## Payroll
 
 Every player carries a salary and a roster has a $110M competitive-balance
@@ -479,11 +527,14 @@ engine/            Game core — no React, no baseball knowledge
   rng.ts             Seeded deterministic RNG (mulberry32, Poisson, normal)
   draft.ts           Spin/pick state machine, feasibility-aware reel
   season.ts          Game-by-game simulation, Pythagenpat expectation
-  run.ts             Orchestration: draft -> rating -> season
+  series.ts          Best-of-seven against one specific opponent
+  run.ts             Orchestration: draft -> rating -> season -> series
   share.ts           Share-code encode/decode, daily seeds
 sports/
   parse.ts           Pipe-delimited roster table parser
-  baseball/          Era adjustment, BaseRuns, staff model, roster pack
+  baseball/          BaseRuns, staff model, roster pack
+    era.ts             Run environment by decade, shared by rating and bosses
+    bosses.ts          The twelve teams worth beating
 app/                 Next.js app; one route, the game, all launch metadata
 components/          Start screen, game shell, draft board, season report
 lib/                 Sound and haptics, palettes, personal best, club colours
@@ -611,6 +662,7 @@ the console stays clean.
 | **Discoverable** | Title, description, `robots.txt`, `sitemap.xml`, SVG and PNG favicons |
 | **Licence** | CC BY-SA credit on the opening screen and in the settings sheet, plus `DATA-LICENSE.md` |
 | **Deployable** | A Pages workflow that typechecks, tests and publishes on push |
+| **Guarded** | `npm run verify:build` opens the built file in a browser before anything ships |
 | **Offline** | Not yet — see below |
 
 The share card is drawn as HTML and captured with the same Chromium the tests
