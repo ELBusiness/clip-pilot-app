@@ -1,7 +1,10 @@
 # Publishes the game to GitHub Pages on every push to the development branch.
 #
-# No setup required: the first run turns Pages on itself. The repository has to
-# be public, or on a plan that includes Pages for private repositories.
+# ONE-TIME SETUP, and it cannot be automated: in the repository's Settings ->
+# Pages, set Source to "GitHub Actions". Every run after that is hands-off.
+#
+# The repository also has to be public, or on a plan that includes Pages for
+# private repositories.
 #
 # The site is static, so a deploy is an upload of plain files. A custom domain
 # later means setting SITE_URL to it and clearing BASE_PATH, because a root
@@ -43,14 +46,14 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
-      # enablement turns Pages on through the API on the first run, so there is
-      # no click-here step standing between a push and a live site. Without it
-      # the first deploy fails with "Get Pages site failed ... Not Found",
-      # which reads like a broken workflow rather than a setting nobody set.
+      # Deliberately without `enablement: true`. The workflow token can deploy
+      # to Pages but cannot create the site — that call comes back "Resource
+      # not accessible by integration" — and the only way around it is a
+      # personal access token with admin scope stored as a secret, which is a
+      # worse trade than one click. Without enablement the failure at least
+      # names the cause: "verify that the repository has Pages enabled".
       - uses: actions/configure-pages@v5
         id: pages
-        with:
-          enablement: true
 
       - run: npm run build
         env:

@@ -555,12 +555,22 @@ nothing, and a spike in traffic costs nothing either.
 ### The one-click path: GitHub Pages
 
 `.github/workflows/deploy.yml` typechecks, tests and publishes on every push to
-the development branch, and turns Pages on itself the first time it runs. No
-setup, no tokens, no accounts, nothing to pay for. The site lives at
-`https://<user>.github.io/<repo>/`.
+the development branch. The site lives at `https://<user>.github.io/<repo>/`.
 
-The repository has to be public, or on a plan that includes Pages for private
-repositories — that is the one thing the workflow cannot do for you.
+**One manual step, once, and it cannot be automated:** repository Settings →
+Pages → set Source to *GitHub Actions*. Every run after that is hands-off.
+
+It is worth knowing why, because the obvious shortcut does not work. The
+`configure-pages` action takes `enablement: true`, which sounds like exactly
+this — but the workflow's own token can deploy to a Pages site without being
+able to create one, so that call returns *Resource not accessible by
+integration*. The only way around it is a personal access token with admin
+scope stored as a repository secret, which is a worse trade than one click. So
+the workflow leaves enablement off, where the failure at least names its cause:
+*verify that the repository has Pages enabled*.
+
+The repository also has to be public, or on a plan that includes Pages for
+private repositories.
 
 ### Anywhere else
 
