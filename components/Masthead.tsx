@@ -22,7 +22,7 @@ export default function Masthead({
 }) {
   return (
     <header className="masthead">
-      <DiamondMark />
+      <PlateMark />
       <span className="wordmark">
         162<em>–0</em>
       </span>
@@ -51,26 +51,26 @@ export default function Masthead({
 
 /**
  * The mark: a home plate with an infield diamond inside it, drawn rather than
- * imaged so it stays crisp at any density and costs nothing to ship.
+ * imaged so it stays crisp at any density and costs nothing to ship. Exported
+ * because the opening screen shows the same mark, and two copies of a logo is
+ * how a logo ends up with two slightly different shapes.
  */
-function DiamondMark() {
+export function PlateMark({ size = 34 }: { size?: number }) {
   return (
-    <svg className="mark" viewBox="0 0 40 40" aria-hidden="true">
+    <svg className="mark" viewBox="0 0 40 40" width={size} height={size} aria-hidden="true">
       {/* Home plate, the one shape in baseball nothing else shares. */}
       <path
         d="M6 4 h28 v20 l-14 12 -14 -12 z"
-        fill="#0a120e"
+        fill="none"
         stroke="var(--bulb)"
         strokeWidth="2.4"
         strokeLinejoin="round"
       />
       <path
         d="M20 11 l7 7 -7 7 -7 -7 z"
-        fill="none"
-        stroke="var(--bulb)"
-        strokeWidth="2"
+        fill="var(--bulb)"
         strokeLinejoin="round"
-        opacity="0.85"
+        opacity="0.9"
       />
     </svg>
   )

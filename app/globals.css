@@ -241,125 +241,129 @@ button {
   padding: calc(var(--safe-top) + 12px) var(--pad) calc(var(--safe-bottom) + 16px);
 }
 
-/* ---------- Home ---------- */
-
-.home-title {
-  font-size: clamp(38px, 12vw, 60px);
-  line-height: 0.92;
-  letter-spacing: -0.045em;
-  font-weight: 800;
-  margin: 28px 0 10px;
+/* The same licence credit as the start screen, reachable mid-draft. */
+.sheet-credit {
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+  margin-bottom: 18px !important;
 }
 
-.home-title em {
-  font-style: normal;
-  color: var(--bulb);
-}
-
-.home-sub {
-  color: var(--chalk-dim);
-  font-size: 16px;
-  line-height: 1.5;
-  margin: 0 0 28px;
-  max-width: 42ch;
-}
-
-.sport-grid {
-  display: grid;
-  gap: 12px;
-}
-
-.sport-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  padding: 18px;
-  text-align: left;
-  text-decoration: none;
-  color: inherit;
-  background: var(--panel-hi);
-  border-radius: var(--r-lg);
-  transition: border-color 0.15s ease, transform 0.12s ease;
-}
-
-.sport-card:active {
-  transform: scale(0.985);
-  border-color: var(--rule-hi);
-}
-
-.sport-record {
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  min-width: 84px;
-  color: var(--bulb);
-}
-
-.sport-card > span:last-child {
-  display: block;
-  min-width: 0;
-}
-
-.sport-name {
-  display: block;
-  font-size: 17px;
-  font-weight: 650;
-}
-
-.sport-tag {
-  display: block;
-  font-size: 13.5px;
-  color: var(--chalk-faint);
-  margin-top: 3px;
-  line-height: 1.4;
-}
-
-/* ---------- Masthead ---------- */
+/* ---------- Start screen ---------- */
 
 /*
- * A painted header board rather than floating pills: the mark, the game's
- * name, and where you are in the draft, separated from the field below by a
- * chalk rule the way a scoreboard's header band is.
+ * The first thing anyone sees. It has one job: say what the game is and offer
+ * the two ways in. Everything below the buttons is there for the first visit
+ * only, so it stays quiet enough to scroll past on the tenth.
  */
-.masthead {
+.shell.start {
+  gap: 0;
+}
+
+.start-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-bottom: 0;
-  margin-bottom: 20px;
+  justify-content: space-between;
+  margin-bottom: 34px;
 }
 
-.mark {
-  width: 34px;
-  height: 34px;
-  flex-shrink: 0;
-}
-
-.wordmark {
+.start-title {
+  font-size: clamp(56px, 19vw, 92px);
   font-weight: 800;
-  font-size: 25px;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.05em;
   line-height: 1;
-  color: var(--chalk);
+  margin: 0 0 16px;
 }
 
-.wordmark em {
+.start-title em {
   font-style: normal;
   color: var(--bulb);
 }
 
-.masthead-meta {
-  margin-left: auto;
-  text-align: right;
-  line-height: 1.15;
+.start-sub {
+  color: var(--chalk-dim);
+  font-size: 16px;
+  line-height: 1.55;
+  margin: 0 0 30px;
+  max-width: 36ch;
 }
 
-.masthead-meta b {
-  display: block;
-  font-size: 15px;
-  font-weight: 600;
+.start-actions {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.start-best {
+  margin: 0 0 30px;
+  font-size: 13.5px;
+  color: var(--chalk-faint);
+}
+
+.start-best b {
   color: var(--chalk);
+  font-weight: 700;
+}
+
+.start-how {
+  display: grid;
+  gap: 2px;
+}
+
+.step {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 0;
+}
+
+.step + .step {
+  border-top: 1px solid var(--rule);
+}
+
+.step-n {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--chalk-faint);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-body b {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 650;
+  margin-bottom: 3px;
+}
+
+.step-body > span {
+  display: block;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--chalk-faint);
+}
+
+/*
+ * The roster pack is CC BY-SA 3.0. Attribution and ShareAlike are obligations
+ * that travel with the work, so the credit belongs where a player can see it,
+ * not only in a licence file in the repository.
+ */
+.start-credit {
+  margin: 26px 0 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--chalk-faint);
+}
+
+.start-credit a {
+  color: var(--chalk-dim);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* ---------- Game chrome ---------- */

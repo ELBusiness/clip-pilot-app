@@ -29,6 +29,7 @@ import {
 import { runSeason, type RunResult } from '@/engine/run'
 import { loadBest, recordRun, type BestOutcome, type BestRun } from '@/lib/best'
 import { teamStyle } from '@/lib/team-colors'
+import Start from '@/components/Start'
 import { dailyKey, dailyNumber, dailySeed, dailyShareText, encodeRun, seedCode } from '@/engine/share'
 import type { Combo, Player, Ruleset } from '@/engine/types'
 import {
@@ -301,7 +302,12 @@ export default function Game() {
     }
     const fromUrl = url.searchParams.get('seed')
     const parsed = fromUrl ? parseInt(fromUrl, 36) : NaN
-    start(Number.isFinite(parsed) ? parsed : (Math.random() * 0xffffffff) >>> 0)
+    if (Number.isFinite(parsed)) {
+      start(parsed)
+      return clearTimers
+    }
+    // No draft named in the URL: open on the start screen rather than dropping
+    // a first-time player into the middle of a spin with nothing explained.
     return clearTimers
   }, [start])
 
@@ -487,7 +493,47 @@ export default function Game() {
       .sort((a, b) => b.rating.score - a.rating.score || a.player.name.localeCompare(b.player.name))
   }, [ruleset, state, spinning, filter, query, outlook])
 
-  if (!state) return <main className="shell" />
+  /** The settings sheet, reachable from the start screen and from the draft. */
+  const renderSettings = () => (
+    <SettingsSheet
+      sound={sound}
+      haptics={haptics}
+      hapticSupport={hapticSupport}
+      palette={palette}
+      onPalette={(next) => {
+        setPalette(next)
+        applyPalette(next)
+        playPick()
+      }}
+      onSound={(on) => {
+        setSound(on)
+        setSoundEnabled(on)
+        if (on) playPick()
+      }}
+      onHaptics={(on) => {
+        setHaptics(on)
+        setHapticsEnabled(on)
+        if (on) vibrate(20)
+      }}
+      onClose={() => setMenuOpen(false)}
+    />
+  )
+
+  if (!state) {
+    return (
+      <>
+        <Start
+          dayNumber={dailyNumber()}
+          dailyRecord={dailyDone?.date === dailyKey() ? dailyDone.record : null}
+          best={best}
+          onPlay={() => start((Math.random() * 0xffffffff) >>> 0, 'free')}
+          onDaily={() => start(dailySeed('baseball'), 'daily')}
+          onMenu={() => setMenuOpen(true)}
+        />
+        {menuOpen && renderSettings()}
+      </>
+    )
+  }
 
   if (result) {
     return (
@@ -520,30 +566,7 @@ export default function Game() {
         onMenu={() => setMenuOpen(true)}
       />
 
-      {menuOpen && (
-        <SettingsSheet
-          sound={sound}
-          haptics={haptics}
-          hapticSupport={hapticSupport}
-          palette={palette}
-          onPalette={(next) => {
-            setPalette(next)
-            applyPalette(next)
-            playPick()
-          }}
-          onSound={(on) => {
-            setSound(on)
-            setSoundEnabled(on)
-            if (on) playPick()
-          }}
-          onHaptics={(on) => {
-            setHaptics(on)
-            setHapticsEnabled(on)
-            if (on) vibrate(20)
-          }}
-          onClose={() => setMenuOpen(false)}
-        />
-      )}
+      {menuOpen && renderSettings()}
 
       {phase === 'spin' && (
       <div className="reels">
@@ -781,6 +804,12 @@ function SettingsSheet({
           You get <em>one</em> re-spin a run, and you choose which reel it turns.
           A loaded club in the wrong decade only needs the decade turned — keep
           the club and spin the era, and the other half stays exactly as it is.
+        </p>
+
+        <p className="factor-detail sheet-credit">
+          Player data from the Lahman Baseball Database and the Chadwick Baseball
+          Databank, licensed CC BY-SA 3.0. Not affiliated with Major League
+          Baseball or any club.
         </p>
 
         <label className="toggle-row">

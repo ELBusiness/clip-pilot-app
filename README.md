@@ -484,11 +484,12 @@ engine/            Game core — no React, no baseball knowledge
 sports/
   parse.ts           Pipe-delimited roster table parser
   baseball/          Era adjustment, BaseRuns, staff model, roster pack
-app/                 Next.js app; one route, the game
-components/          Game shell, draft board, season report
+app/                 Next.js app; one route, the game, all launch metadata
+components/          Start screen, game shell, draft board, season report
 lib/                 Sound and haptics, palettes, personal best, club colours
+public/              Manifest, icons, share card, robots.txt, sitemap
 standalone/          Entry for the single-file build
-scripts/             Lahman importer, standalone bundler
+scripts/             Lahman importer, standalone bundler, launch-asset renderer
 tests/               Engine determinism, sim math, data integrity, difficulty
 ```
 
@@ -535,11 +536,82 @@ npm install
 npm run dev              # http://localhost:3000
 npm test                 # determinism, sim math, data integrity, difficulty
 npm run typecheck
-npm run build            # static export
+npm run build            # static export -> out/
+npm run preview          # serve out/ as a host would
 npm run build:standalone # single self-contained HTML file
+npm run build:assets     # re-render icons and the share card (rarely)
 ```
 
 Requires Node 22+.
+
+## Shipping it
+
+`npm run build` writes a directory of plain files to `out/`. There is no server
+and no build step at the host: every screen is decided in the browser from a
+seed, and the roster pack is in the bundle. That means it hosts anywhere static
+— a bucket, a CDN, GitHub Pages, Netlify, Vercel, Cloudflare Pages — for
+nothing, and a spike in traffic costs nothing either.
+
+```bash
+npm run build
+# then upload out/ — for example:
+npx wrangler pages deploy out          # Cloudflare Pages
+npx netlify deploy --prod --dir out    # Netlify
+npx vercel deploy --prebuilt           # Vercel
+```
+
+One thing to change before the first deploy: `SITE` at the top of
+`app/layout.tsx` is `https://162-0.app`. Open Graph image URLs have to be
+absolute, so a link shared from a different domain will point its preview image
+back at that one until the constant is updated.
+
+### What is in place
+
+| | |
+| --- | --- |
+| **Hosting** | Static export, no server, no runtime cost |
+| **Link previews** | Open Graph and Twitter card meta, plus a 1200×630 card rendered from the real design tokens |
+| **Installable** | Web app manifest, standalone display, 192/512 and maskable icons, apple-touch-icon |
+| **Discoverable** | Title, description, `robots.txt`, `sitemap.xml`, SVG and PNG favicons |
+| **Licence** | CC BY-SA credit on the opening screen and in the settings sheet, plus `DATA-LICENSE.md` |
+| **Offline** | Not yet — see below |
+
+The share card is drawn as HTML and captured with the same Chromium the tests
+use, so it is built from the real tokens rather than redrawn by hand in a
+graphics tool and left to drift. `npm run build:assets` regenerates it; the
+output is committed, so a normal install never touches a browser.
+
+### What is deliberately not built
+
+These need something this repository cannot provide on its own, and pretending
+otherwise would be worse than saying so:
+
+- **A leaderboard and accounts.** Needs a backend and a database. The daily is
+  currently a private score plus a share card, which is the whole loop Wordle
+  ran on for months before it had anything else.
+- **Native apps.** Needs developer accounts, review, and store listings. The
+  manifest means it installs to a home screen and runs full-screen in the
+  meantime, which covers most of what a wrapper app would.
+- **Ads.** 82-0 gates its extra re-spins behind rewarded video. The hooks for
+  that would go on the two re-spin controls, which already know when they are
+  spent.
+- **Offline play.** A service worker would make it work on a plane. The bundle
+  is entirely self-contained already, so this is a small job, but an incorrect
+  service worker is a good way to serve a stale build forever.
+
+### Before charging money for it
+
+Club names, colours and marks belong to the clubs. Fan projects in this genre
+generally run unbothered, and this one does not use logos, wordmarks or team
+imagery — but "generally unbothered" is not a licence, and the exposure grows
+the moment there is revenue attached. Worth a lawyer's hour before a paid tier,
+an ad deal, or a store listing.
+
+The player data carries its own obligation: **CC BY-SA 3.0 is copyleft.**
+Attribution is required and is now in the interface, and ShareAlike means a
+derivative of that database has to be shared under the same terms. That governs
+the roster pack, not your source code — but read
+[DATA-LICENSE.md](DATA-LICENSE.md) before a commercial launch rather than after.
 
 ## Tuning the game
 
