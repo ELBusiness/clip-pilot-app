@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://162-0.app/sitemap.xml

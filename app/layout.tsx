@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { SITE_URL, asset } from '@/lib/site'
 import './globals.css'
 
 /**
@@ -7,38 +8,39 @@ import './globals.css'
  * growth engine of this genre — people post their record — and a link that
  * previews as a blank rectangle is a link nobody clicks.
  */
-const SITE = 'https://162-0.app'
 const TITLE = '162-0 — draft an MLB team that never loses'
 const DESCRIPTION =
   'Spin for a franchise and a decade, draft thirteen legends, and simulate all 162 games. Real players from 1901 on, era-adjusted, scored by the same run estimator the analysts use.'
 
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE),
+  metadataBase: new URL(SITE_URL),
   title: TITLE,
   description: DESCRIPTION,
   applicationName: '162-0',
-  manifest: '/manifest.webmanifest',
+  manifest: asset('/manifest.webmanifest'),
   appleWebApp: { capable: true, title: '162-0', statusBarStyle: 'black-translucent' },
   icons: {
     icon: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
-      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: asset('/icon.svg'), type: 'image/svg+xml' },
+      { url: asset('/favicon-32.png'), sizes: '32x32', type: 'image/png' },
     ],
-    apple: [{ url: '/icon-192.png', sizes: '192x192', type: 'image/png' }],
+    apple: [{ url: asset('/icon-192.png'), sizes: '192x192', type: 'image/png' }],
   },
   openGraph: {
     type: 'website',
     siteName: '162-0',
     title: TITLE,
     description: DESCRIPTION,
-    url: SITE,
-    images: [{ url: '/share-card.png', width: 1200, height: 630, alt: '162-0 — draft a team that never loses' }],
+    url: asset('/'),
+    images: [
+      { url: asset('/share-card.png'), width: 1200, height: 630, alt: '162-0 — draft a team that never loses' },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: TITLE,
     description: DESCRIPTION,
-    images: ['/share-card.png'],
+    images: [asset('/share-card.png')],
   },
   // The roster pack is CC BY-SA 3.0; the obligation follows the work wherever
   // it is served, so the credit is in the document as well as in the interface.

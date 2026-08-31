@@ -552,6 +552,15 @@ seed, and the roster pack is in the bundle. That means it hosts anywhere static
 — a bucket, a CDN, GitHub Pages, Netlify, Vercel, Cloudflare Pages — for
 nothing, and a spike in traffic costs nothing either.
 
+### The one-click path: GitHub Pages
+
+`.github/workflows/deploy.yml` typechecks, tests and publishes on every push to
+the development branch. **One-time setup:** repository Settings → Pages → set
+Source to *GitHub Actions*. No tokens, no accounts, nothing to pay for. The
+site then lives at `https://<user>.github.io/<repo>/`.
+
+### Anywhere else
+
 ```bash
 npm run build
 # then upload out/ — for example:
@@ -560,10 +569,24 @@ npx netlify deploy --prod --dir out    # Netlify
 npx vercel deploy --prebuilt           # Vercel
 ```
 
-One thing to change before the first deploy: `SITE` at the top of
-`app/layout.tsx` is `https://162-0.app`. Open Graph image URLs have to be
-absolute, so a link shared from a different domain will point its preview image
-back at that one until the constant is updated.
+### Two environment variables decide every absolute URL
+
+| | |
+| --- | --- |
+| `SITE_URL` | Origin only, no path. Used for the Open Graph image, the sitemap and the canonical share link. |
+| `BASE_PATH` | `''` for a root domain, `/repo` for a GitHub Pages project site. |
+
+They matter more than they look. A project site serves from `/<repo>/`, so the
+manifest, the icons and the share card all have to carry that prefix — get it
+wrong and you get the classic failure where the page works perfectly on
+localhost and serves a blank screen with four 404s in production. The Pages
+workflow reads both from `actions/configure-pages`, so it is correct by
+construction; a custom domain later means setting `SITE_URL` to it and clearing
+`BASE_PATH`.
+
+Verified by building at `/clip-pilot-app`, serving it from a subdirectory, and
+playing a full thirteen-pick draft through to a result: every asset 200s and
+the console stays clean.
 
 ### What is in place
 
@@ -574,6 +597,7 @@ back at that one until the constant is updated.
 | **Installable** | Web app manifest, standalone display, 192/512 and maskable icons, apple-touch-icon |
 | **Discoverable** | Title, description, `robots.txt`, `sitemap.xml`, SVG and PNG favicons |
 | **Licence** | CC BY-SA credit on the opening screen and in the settings sheet, plus `DATA-LICENSE.md` |
+| **Deployable** | A Pages workflow that typechecks, tests and publishes on push |
 | **Offline** | Not yet — see below |
 
 The share card is drawn as HTML and captured with the same Chromium the tests

@@ -29,6 +29,7 @@ import {
 import { runSeason, type RunResult } from '@/engine/run'
 import { loadBest, recordRun, type BestOutcome, type BestRun } from '@/lib/best'
 import { teamStyle } from '@/lib/team-colors'
+import { shareOrigin } from '@/lib/site'
 import Start from '@/components/Start'
 import { dailyKey, dailyNumber, dailySeed, dailyShareText, encodeRun, seedCode } from '@/engine/share'
 import type { Combo, Player, Ruleset } from '@/engine/types'
@@ -380,8 +381,9 @@ export default function Game() {
 
   const share = async () => {
     if (!state) return
-    const url = new URL(window.location.href)
-    url.search = ''
+    // Not window.location: inside an embedded viewer that is a frame URL only
+    // this session can open. See shareOrigin().
+    const url = shareOrigin()
 
     // The daily card shows the record and nothing else. Everyone played the
     // same spins, so revealing the roster answers the only interesting

@@ -258,3 +258,39 @@ test('a targeted re-spin replays identically from the same seed', () => {
     reroll(ruleset, base, 'era').spin,
   )
 })
+
+test('a shared link points somewhere a friend can actually open', async () => {
+  const { shareOrigin, SITE_URL } = await import('../lib/site')
+
+  // `top` is a getter so the cross-origin case can throw the way a real browser
+  // does when a framed page reaches for its parent.
+  const withWindow = (self: object, top: () => object, href: string): string => {
+    const w = { location: { href }, self } as Record<string, unknown>
+    Object.defineProperty(w, 'top', { get: top })
+    ;(globalThis as { window?: unknown }).window = w
+    try {
+      return shareOrigin().toString()
+    } finally {
+      delete (globalThis as { window?: unknown }).window
+    }
+  }
+
+  // A normal page shares the page you are on, query string stripped so the
+  // link carries the run being shared and not the one you arrived from.
+  const self = {}
+  assert.equal(
+    withWindow(self, () => self, 'https://example.test/game/?seed=abc#x'),
+    'https://example.test/game/',
+  )
+
+  // Embedded: window.location is a frame URL private to that session, so
+  // sharing it hands someone a link that cannot open. The canonical site is
+  // the honest answer instead.
+  assert.equal(withWindow({}, () => ({}), 'https://sandbox.test/_frame/9f8a/'), `${SITE_URL}/`)
+
+  // A cross-origin parent throws on access, which is itself the answer.
+  assert.equal(
+    withWindow({}, () => { throw new Error('cross-origin') }, 'https://sandbox.test/_frame/9f8a/'),
+    `${SITE_URL}/`,
+  )
+})
