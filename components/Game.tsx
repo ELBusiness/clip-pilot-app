@@ -31,6 +31,7 @@ import { loadBest, recordRun, type BestOutcome, type BestRun } from '@/lib/best'
 import { teamStyle } from '@/lib/team-colors'
 import { shareOrigin } from '@/lib/site'
 import Start from '@/components/Start'
+import Reel from '@/components/Reel'
 import { dailyKey, dailyNumber, dailySeed, dailyShareText, encodeRun, seedCode } from '@/engine/share'
 import type { Combo, Player, Ruleset } from '@/engine/types'
 import {
@@ -156,6 +157,10 @@ export default function Game() {
   /** Which franchise and era each reel currently shows while turning. */
   const [teamDisplay, setTeamDisplay] = useState<string | null>(null)
   const [eraDisplay, setEraDisplay] = useState<string | null>(null)
+  /** What each reel stops on, and a counter that replays the travel. */
+  const [teamLanding, setTeamLanding] = useState('—')
+  const [eraLanding, setEraLanding] = useState('—')
+  const [spinCycle, setSpinCycle] = useState(0)
   const [teamSettled, setTeamSettled] = useState(true)
   const [eraSettled, setEraSettled] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -192,11 +197,22 @@ export default function Game() {
       const teams = [...new Set(pool.map((c) => c.franchiseId))]
       const eras = [...new Set(pool.map((c) => c.eraId))]
 
+
+
       // A targeted re-spin turns one reel and holds the other, which is the
       // whole point of aiming it — watching the half you kept cycle back to
       // itself would say the opposite of what happened.
       const turnTeam = axis !== 'era'
       const turnEra = axis !== 'team'
+
+      const landingTeam = next.spin.franchiseId
+      const landingEra = next.spin.eraId
+      setTeamLanding(
+        franchiseNameFor(ruleset.franchises.find((f) => f.id === landingTeam), landingEra) || '—',
+      )
+      setEraLanding(eraLabelFor(landingTeam, ruleset.eras.find((e) => e.id === landingEra)) || '—')
+      // Flipping this is what replays the reels; nothing remounts.
+      setSpinCycle((n) => n + 1)
 
       setSpinning(true)
       setTeamSettled(!turnTeam)
@@ -225,19 +241,18 @@ export default function Game() {
       if (!turnTeam) setTeamDisplay(next.spin.franchiseId)
       if (!turnEra) setEraDisplay(next.spin.eraId)
 
+      // These now carry sound only. Nothing here touches React state until the
+      // reel stops, which is what keeps the spin on the compositor.
       teamTimes.forEach((at, i) => {
         const last = i === teamTimes.length - 1
         timers.current.push(
           setTimeout(() => {
-            setTeamDisplay(last ? next.spin!.franchiseId : (teams[i % teams.length] ?? next.spin!.franchiseId))
-            if (last) {
-              setTeamSettled(true)
-              playLand()
-              vibrate(18)
-              if (handoff === 'team') settle()
-            } else {
-              playTick()
-            }
+            if (!last) return playTick()
+            setTeamDisplay(next.spin!.franchiseId)
+            setTeamSettled(true)
+            playLand()
+            vibrate(18)
+            if (handoff === 'team') settle()
           }, at),
         )
       })
@@ -246,15 +261,12 @@ export default function Game() {
         const last = i === eraTimes.length - 1
         timers.current.push(
           setTimeout(() => {
-            setEraDisplay(last ? next.spin!.eraId : (eras[i % eras.length] ?? next.spin!.eraId))
-            if (last) {
-              setEraSettled(true)
-              playLand()
-              vibrate([22, 40, 22])
-              if (handoff === 'era') settle()
-            } else {
-              playTick()
-            }
+            if (!last) return playTick()
+            setEraDisplay(next.spin!.eraId)
+            setEraSettled(true)
+            playLand()
+            vibrate([22, 40, 22])
+            if (handoff === 'era') settle()
           }, at),
         )
       })
@@ -275,9 +287,12 @@ export default function Game() {
       // auto-rolling into a list throws it away.
       const next = spin(ruleset, draft)
       setState(next)
-      setDisplay(next.spin)
-      setTeamDisplay(next.spin?.franchiseId ?? null)
-      setEraDisplay(next.spin?.eraId ?? null)
+      setDisplay(null)
+      // Nothing is revealed until a reel stops on it.
+      setTeamDisplay(null)
+      setEraDisplay(null)
+      setTeamLanding('—')
+      setEraLanding('—')
       setTeamSettled(true)
       setEraSettled(true)
       setPhase('spin')
@@ -355,9 +370,12 @@ export default function Game() {
         setBest(loadBest())
       }
     } else {
-      setDisplay(next.spin)
-      setTeamDisplay(next.spin?.franchiseId ?? null)
-      setEraDisplay(next.spin?.eraId ?? null)
+      // Back to the reels with the next combo drawn but unrevealed.
+      setDisplay(null)
+      setTeamDisplay(null)
+      setEraDisplay(null)
+      setTeamLanding('—')
+      setEraLanding('—')
       setPhase('spin')
     }
   }
@@ -421,8 +439,40 @@ export default function Game() {
 
   const combo = display
   /** What the team reel is showing right now — mid-spin or settled. */
-  const shownTeamId = teamDisplay ?? combo?.franchiseId
-  const shownEraId = eraDisplay ?? combo?.eraId
+  /**
+   * The symbols each reel blurs through. Decorative — they are gone in a
+   * fraction of a second — so they are built once and reused, which is what
+   * keeps a spin from re-mounting forty lines of text.
+   */
+  const passingTeams = useMemo(
+    () =>
+      Array.from({ length: TEAM_TICKS - 1 }, (_, i) => {
+        const f = ruleset.franchises[(i * 7 + 3) % ruleset.franchises.length]
+        return f ? f.name : '—'
+      }),
+    [ruleset],
+  )
+  const passingEras = useMemo(
+    () =>
+      Array.from({ length: ERA_TICKS - 1 }, (_, i) => {
+        const e = ruleset.eras[(i * 5 + 2) % ruleset.eras.length]
+        return e ? e.label : '—'
+      }),
+    [ruleset],
+  )
+  /** A held reel shows only its landing symbol, so it does not travel. */
+  const turningTeam = !teamSettled || spinning
+  const turningEra = !eraSettled || spinning
+
+  /*
+   * Only what a reel has actually landed on, never what the engine has already
+   * decided. `pick()` draws the next combo the moment a pick is committed, so
+   * falling back to it here meant the club and decade were on screen — in the
+   * card's colour bar — before SPIN was pressed. The spin was showing you
+   * something you had already been told.
+   */
+  const shownTeamId = teamDisplay ?? undefined
+  const shownEraId = eraDisplay ?? undefined
 
   const franchise = useMemo(
     () => ruleset.franchises.find((f) => f.id === shownTeamId),
@@ -534,8 +584,14 @@ export default function Game() {
           dayNumber={dailyNumber()}
           dailyRecord={dailyDone?.date === dailyKey() ? dailyDone.record : null}
           best={best}
-          onPlay={() => start((Math.random() * 0xffffffff) >>> 0, 'free')}
-          onDaily={() => start(dailySeed('baseball'), 'daily')}
+          onPlay={() => {
+            void resume()
+            start((Math.random() * 0xffffffff) >>> 0, 'free')
+          }}
+          onDaily={() => {
+            void resume()
+            start(dailySeed('baseball'), 'daily')
+          }}
           onMenu={() => setMenuOpen(true)}
         />
         {menuOpen && renderSettings()}
@@ -587,15 +643,25 @@ export default function Game() {
           style={teamSettled ? teamStyle(franchise) : undefined}
         >
           <span className="reel-kicker">Team</span>
-          <span className="reel-value" key={shownTeamId ?? 'none'}>
-            {franchise ? franchiseNameFor(franchise, shownEraId) : '—'}
-          </span>
+          <Reel
+            passing={passingTeams}
+            landing={teamLanding}
+            durationMs={SPIN_MS}
+            cycle={spinCycle}
+            spinning={turningTeam}
+            className="team"
+          />
         </div>
         <div className={`reel-card era${eraSettled ? ' landed' : ' rolling'}`}>
           <span className="reel-kicker">Era</span>
-          <span className="reel-value" key={shownEraId ?? 'none'}>
-            {eraLabel || '—'}
-          </span>
+          <Reel
+            passing={passingEras}
+            landing={eraLanding}
+            durationMs={SPIN_MS}
+            cycle={spinCycle}
+            spinning={turningEra}
+            className="era"
+          />
         </div>
       </div>
       )}

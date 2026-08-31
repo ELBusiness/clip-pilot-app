@@ -358,6 +358,41 @@ hazard rather than a flourish. Landing on the colour also makes it the payoff
 of the spin — as a short bar under the club name rather than a filled card, so
 it never competes with the primary action.
 
+### The spin
+
+The reel used to swap a single line of text on a timer: eighteen React state
+updates per spin, each re-rendering the screen and restarting a CSS animation.
+Measured on a 4×-throttled CPU, the spin dropped a frame every other tick
+through its fastest stretch.
+
+It is now the shape a slot machine actually has — a fixed window with the
+symbols stacked behind it, moved by one `transform` on the compositor. Three
+details keep it there:
+
+- **A CSS animation, not a transition.** A transition needs a starting point
+  the browser has already accepted, which costs a forced reflow per reel in the
+  exact frame the spin begins.
+- **The strip is mounted once.** The symbols that blur past are fixed for the
+  run, so a spin changes one line of text instead of re-mounting forty.
+  Mounting the strip per spin measured about 35ms of that first frame.
+- **Replay is a keyframe swap.** `animation-name` alternates between two
+  identical keyframes. Nothing remounts, nothing is measured, no effect runs.
+
+The travel is a percentage of the strip rather than pixels, so nothing reads
+the DOM and the window can change height without the maths following it around.
+The easing is `easeOutCubic`, and the tick sounds are scheduled from the inverse
+of that same curve, so what you hear is what is passing the window.
+
+| Frames over 32ms during one spin | Before | After |
+|---|---|---|
+| Total | 9 | **3** |
+| Worst frame | 333ms | **133ms** |
+| Through the spin itself | 6 | **0** |
+
+What is left sits at the two transition boundaries, where a short staggered
+entrance turns the cost of mounting twenty player cards into something that
+looks deliberate rather than into a frozen frame.
+
 ### Four palettes
 
 Each defines every token in full rather than patching the one before it, so no

@@ -368,6 +368,60 @@ button {
 
 /* ---------- Game chrome ---------- */
 
+/*
+ * The header: mark, wordmark, where you are in the draft, settings.
+ *
+ * These rules were deleted by accident when the old home-screen block they sat
+ * inside was replaced. Without them the header falls back to `display: block`
+ * and the pieces stack on top of each other, which is exactly what shipped.
+ */
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  min-height: 38px;
+}
+
+.mark {
+  flex-shrink: 0;
+  display: block;
+}
+
+.wordmark {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--chalk);
+  white-space: nowrap;
+}
+
+.wordmark em {
+  font-style: normal;
+  color: var(--bulb);
+}
+
+/* Pushed to the far side, with the icon button after it. */
+.masthead-meta {
+  margin-left: auto;
+  text-align: right;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.masthead-meta .stencil {
+  display: block;
+}
+
+.masthead-meta b {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--chalk);
+  white-space: nowrap;
+}
+
+
 .topbar {
   display: flex;
   align-items: center;
@@ -645,13 +699,79 @@ button {
   margin-bottom: 7px;
 }
 
-.reel-value {
-  font-size: clamp(18px, 5.4vw, 24px);
+/*
+ * The window the symbols pass behind. Fixed height and clipped, because the
+ * strip behind it is many times taller and only one symbol should ever show.
+ */
+.reel-window {
+  display: block;
+  height: 54px;
+  overflow: hidden;
+  /* Its own layer, so moving the strip never repaints the card around it. */
+  contain: paint;
+}
+
+/* At rest the strip sits on its last item, which is the symbol it landed on.
+   The animation travels to that same position, so starting and stopping agree
+   without anything having to be reset. */
+.reel-strip {
+  display: block;
+  transform: translate3d(0, var(--reel-end), 0);
+}
+
+/* One compositor animation for the whole spin. `both` holds the landing
+   symbol in the window after it finishes. */
+.reel-strip.spinning {
+  will-change: transform;
+  /* animation-name is set inline and alternates between the two identical
+     keyframes below; that swap is what replays the spin without a remount. */
+  animation-duration: var(--reel-ms);
+  animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+  animation-fill-mode: both;
+}
+
+@keyframes reel-spin-a {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, var(--reel-end), 0);
+  }
+}
+
+@keyframes reel-spin-b {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, var(--reel-end), 0);
+  }
+}
+
+.reel-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  padding: 0 2px;
+  font-size: clamp(17px, 5vw, 22px);
   font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1.12;
+  line-height: 1.1;
+  text-align: center;
   text-wrap: balance;
   color: var(--chalk);
+  /* A long club name has to fit the window rather than push the strip out of
+     step with itself — every item must be exactly one window tall. */
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reel-strip.spinning {
+    /* The outcome was decided before the animation started, so landing on it
+       immediately loses nothing but the theatre. */
+    animation-duration: 1ms;
+  }
 }
 
 .reel-sub {
@@ -661,24 +781,8 @@ button {
   font-weight: 650;
 }
 
-/* Each tick drops the next value in from above. Keyed re-mounts replay it. */
-.reel-card.rolling .reel-value {
-  animation: reel-tick 0.12s linear;
-}
-
 .reel-card.rolling {
   border-color: var(--rule-hi);
-}
-
-@keyframes reel-tick {
-  from {
-    transform: translateY(-14px);
-    opacity: 0.25;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
 }
 
 .reel-card.landed {
@@ -1342,6 +1446,60 @@ button {
 .search:focus {
   outline: none;
   background: var(--panel-hi);
+}
+
+/*
+ * The pick screen arriving.
+ *
+ * Mounting the header, the dock and twenty player cards in one frame costs
+ * around 100ms on a phone-class CPU, and as a hard cut that reads as a freeze.
+ * A short staggered entrance turns the same work into something that looks
+ * deliberate — the eye follows the pieces in rather than waiting on a still
+ * frame — and the cards, which are the expensive part, arrive last.
+ */
+@keyframes pick-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pick-head,
+.filters,
+.dock,
+.pick-prompt,
+.candidates {
+  animation: pick-in 260ms cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+.filters {
+  animation-delay: 40ms;
+}
+
+.dock {
+  animation-delay: 70ms;
+}
+
+.pick-prompt {
+  animation-delay: 95ms;
+}
+
+.candidates {
+  animation-delay: 115ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pick-head,
+  .filters,
+  .dock,
+  .pick-prompt,
+  .candidates {
+    animation: none;
+  }
 }
 
 /* ---------- Candidate list ---------- */
