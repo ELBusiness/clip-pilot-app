@@ -242,22 +242,34 @@ rather than something to grind.
 
 ## Visual direction
 
-A night game seen through an old hand-operated scoreboard. The reference is the
-painted steel board at Wrigley or Fenway: bottle-green panels, cream numerals,
-incandescent bulbs, and the clay and grass of the field itself.
+Flat, near-black, and almost entirely without chrome.
 
-- **Colour** — `#0b1410` bottle-green black, `#12201a` panel, `#f2ede0` chalk
-  cream, `#ffb627` bulb amber, `#a85c3a` infield clay, `#1e5b37` outfield
-  grass. The neutrals are green-biased rather than a borrowed near-black, and
-  the accent is a warm bulb rather than a cold pop, because the subject is a
-  ballpark at night and not a console.
-- **Type** — *Big Shoulders Display* for anything that behaves like painted
-  signage, *IBM Plex Sans* for prose, *IBM Plex Mono* for every figure that has
-  to line up. Three roles, none of them the system default this shipped with
-  before.
-- **Form** — near-square radii, because a scoreboard panel is not a rounded
-  card. Player rows are ticket stubs: torn square on the left, rounded on the
-  right. Chalk hairlines separate zones instead of grey borders.
+This was a painted scoreboard first: bottle green, a condensed poster face, an
+amber wash behind every screen, a gradient and a drop-glow on the primary
+button, near-square 3px corners, and a 1px outline around every surface on the
+page. It was a coherent idea and it read as cheap, because each of those is
+decoration and together they are a lot of decoration on a 390px screen.
+
+What replaced it is discipline rather than a new set of effects:
+
+| | Before | Now |
+| --- | --- | --- |
+| Typefaces | 3 — condensed display, mono, sans | **1** — Inter, tabular figures |
+| Border declarations | 48 | **11**, all on controls |
+| Corner radii | 9 distinct values, 11 of them 3px | **3** — 8 / 12 / 16 |
+| Gradients | 8 | **0** |
+| Page background | Two radial washes | **Flat** |
+
+- **Colour** — `#0b0e13` page, `#151a22` panel, `#1c222c` raised, `#f2f5f8`
+  ink, `#f97a1f` accent. Surfaces separate by background step, not by outline,
+  which is most of the difference between a clean interface and a busy one.
+- **Type** — one family at four weights. Three typefaces arguing on a phone was
+  the loudest thing after the amber wash. Caps and wide tracking are spent on
+  section labels only; everything else takes its hierarchy from size and weight.
+- **Restraint on the accent** — the one saturated thing on a screen is either
+  the primary action or a club's colours, never both at the same scale. That is
+  why the reel takes a club *bar* rather than a club fill: an orange club above
+  an orange SPIN button read as two accents stacked.
 
 ### Club colours
 
@@ -295,28 +307,34 @@ chip sits at 1.15 against the page ground, and its rim at 4.8.
 **The reel takes the colour only once it stops.** Painting it while it cycles
 would strobe saturated colour at roughly 20Hz, which is a photosensitivity
 hazard rather than a flourish. Landing on the colour also makes it the payoff
-of the spin.
+of the spin — as a short bar under the club name rather than a filled card, so
+it never competes with the primary action.
 
 ### Four palettes
 
-The schemes are places rather than moods, and each defines every token in full
-rather than patching the one before it, so no colour can survive a switch and
-leave one surface reading against another's ground.
+Each defines every token in full rather than patching the one before it, so no
+colour can survive a switch and leave one surface reading against another's
+ground.
 
 | Palette | | |
 |---|---|---|
-| **Night game** | Painted steel under the lights | the default |
-| **Day game** | A paper scorecard in the sun | light |
-| **Clay** | Infield dirt at dusk | warm neutral |
-| **Slate** | Colour out of the way | cool neutral |
+| **Midnight** | Near-black, cool cast | the default |
+| **Daylight** | Paper white | light |
+| **Warm** | Near-black, weighted brown | warm neutral |
+| **Mono** | Colour out of the way | cool neutral |
 
-Contrast is measured rather than eyeballed. Every palette was checked with WCAG
-ratios across body text, reel type, meter labels, player names, and the accent
-pairing behind the SPIN button. The first pass found secondary text
-between 3.8 and 4.5 in all four — under AA — so `--chalk-faint` was lifted in
-each, and Day's accent was deepened from `#b4661a` to `#9c5514` to clear 4.5
-outright rather than resting on the large-text allowance. Nothing now sits below
-5.2.
+Contrast is measured rather than eyeballed, by walking every text node on every
+screen in a real browser, resolving each one's ground through its ancestors —
+necessary now that almost nothing declares its own background — and compositing
+alpha before taking the ratio.
+
+Flattening the design cost separation that outlines used to provide, and the
+audit caught it: `--rule-hi` had been a mid grey against bottle-green panels
+and sits at **1.57:1** against a near-black one. Two things were painted in it
+— the going rate on an empty position and the empty bench marker — so the pass
+that made the interface cleaner had quietly made a number the draft depends on
+invisible. Both now take real ink and earn their recessive reading from weight
+and italics instead of from being nearly the colour of the page.
 
 ## Interface
 

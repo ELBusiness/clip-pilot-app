@@ -8,155 +8,165 @@
  */
 
 /*
- * PERFECT SEASON — visual direction
+ * 162-0 — visual direction
  *
- * A night game seen through an old hand-operated scoreboard: bottle-green
- * painted steel, cream numerals, incandescent bulbs, and the clay and grass of
- * the field itself. The neutrals are green-biased rather than a borrowed
- * near-black, and the accent is a warm bulb rather than a cold pop, because the
- * subject is a ballpark at night and not a console UI.
+ * Flat, near-black, and almost entirely without chrome. This was a painted
+ * scoreboard before: bottle green, a condensed poster face, an amber wash
+ * behind every screen, a gradient on the primary button, and a 1px outline
+ * around every surface on the page. Each of those reads as decoration on a
+ * phone, and together they read as cheap.
  *
- * This commits to one visual world on purpose, so there is no light theme —
- * but every colour, including the page ground, is painted explicitly so the
- * page holds on any host background.
- */
-/*
- * PERFECT SEASON — palettes
+ * What replaced them is the discipline, not a new set of effects:
  *
- * Four complete palettes, each defining every token. The game is a scoreboard
- * at a ballpark, so the schemes are places rather than moods: a night game, an
- * afternoon one, and two neutrals for anyone who wants the numbers to carry the
- * page instead of the colour.
+ *   - One family. Three typefaces arguing was most of the noise.
+ *   - Elevation, not outlines. Surfaces separate by background step.
+ *   - Three radii. Sharp 3px corners are the fastest way to look dated.
+ *   - No gradients and no glows anywhere.
+ *   - Caps and wide tracking spent on section labels only.
  *
- * Every token is redefined in full by each palette rather than patched, so no
- * colour can survive from the previous scheme and leave one surface reading
+ * The one saturated thing on a screen is either the primary action or a club's
+ * colours, never both at the same scale — which is why the reel takes a club
+ * bar rather than a club fill.
+ *
+ * Four palettes, each defining every token in full rather than patching the
+ * one before, so no colour can survive a switch and leave one surface reading
  * against another's ground.
  */
 :root,
 :root[data-palette='night'] {
   color-scheme: dark;
 
-  /* NIGHT GAME — painted steel under the lights. */
-  --ink: #101b16;
-  --panel: #18271f;
-  --panel-hi: #1e3127;
-  --inset: #0c1712;
-  --rule: #2c4033;
-  --rule-hi: #3f5a48;
+  /* MIDNIGHT — a near-black ground with a cool cast, so colour on it belongs
+     to the clubs and the accent rather than to the page. */
+  --ink: #0b0e13;
+  --panel: #151a22;
+  --panel-hi: #1c222c;
+  --inset: #10141b;
+  --rule: #232a35;
+  --rule-hi: #333c4a;
 
-  --chalk: #f4efe3;
-  --chalk-dim: #bcc6b8;
-  --chalk-faint: #a3b09f;
+  --chalk: #f2f5f8;
+  --chalk-dim: #a8b2c0;
+  --chalk-faint: #8b96a5;
 
-  --bulb: #ffb627;
-  --bulb-ink: #241a04;
-  --bulb-glow: rgba(255, 182, 39, 0.24);
+  --bulb: #f97a1f;
+  --bulb-ink: #1a0d02;
 
-  --grass: #2f7a4a;
-  --clay: #b06a44;
-  --field-line: rgba(244, 239, 227, 0.34);
+  --grass: #1c3a2a;
+  --clay: #3a2a20;
+  --field-line: rgba(242, 245, 248, 0.14);
 
-  --safe: #5ec489;
-  --out: #e05c50;
-  --tie: #93a094;
+  --safe: #4ec98a;
+  --out: #f2685e;
+  --tie: #8b95a1;
 }
 
 :root[data-palette='day'] {
   color-scheme: light;
 
-  /* DAY GAME — a paper scorecard in the sun. */
-  --ink: #f3efe4;
-  --panel: #fbf8f0;
+  /* DAYLIGHT — the same layout on paper-white, for anyone who does not want a
+     dark screen. Elevation runs the other way: panels sit above the page. */
+  --ink: #f2f3f6;
+  --panel: #ffffff;
   --panel-hi: #ffffff;
-  --inset: #ece6d8;
-  --rule: #d9d1bf;
-  --rule-hi: #b9ae97;
+  --inset: #e9ebf0;
+  --rule: #e2e5ea;
+  --rule-hi: #c9ced7;
 
-  --chalk: #1d2620;
-  --chalk-dim: #4d5a50;
-  --chalk-faint: #5a6553;
+  --chalk: #11151b;
+  --chalk-dim: #4a5462;
+  --chalk-faint: #626d7c;
 
-  /* On paper the accent has to hold its own against white, so it deepens. */
-  --bulb: #9c5514;
-  --bulb-ink: #fffaf0;
-  --bulb-glow: rgba(156, 85, 20, 0.16);
+  /* On white the accent has to carry text, so it deepens to clear AA. */
+  --bulb: #b64708;
+  --bulb-ink: #ffffff;
 
-  --grass: #4a8f5c;
-  --clay: #c08356;
-  --field-line: rgba(29, 38, 32, 0.3);
+  --grass: #dfe7e0;
+  --clay: #eee2d8;
+  --field-line: rgba(17, 21, 27, 0.16);
 
-  --safe: #2f7d4f;
-  --out: #b23b31;
-  --tie: #7b8579;
+  --safe: #17794a;
+  --out: #c0392b;
+  --tie: #6b7480;
 }
 
 :root[data-palette='clay'] {
   color-scheme: dark;
 
-  /* WARM NEUTRAL — infield dirt at dusk, no green at all. */
-  --ink: #191512;
-  --panel: #241e19;
-  --panel-hi: #2c251f;
-  --inset: #141110;
-  --rule: #3b322a;
-  --rule-hi: #57493d;
+  /* WARM — the same near-black, weighted brown instead of blue. */
+  --ink: #100d0b;
+  --panel: #1c1815;
+  --panel-hi: #241f1a;
+  --inset: #15110f;
+  --rule: #2b2520;
+  --rule-hi: #3d352d;
 
-  --chalk: #f1e9df;
-  --chalk-dim: #c2b6a8;
-  --chalk-faint: #a49685;
+  --chalk: #f6f2ec;
+  --chalk-dim: #bdb2a5;
+  --chalk-faint: #9d9184;
 
   --bulb: #e08a3c;
-  --bulb-ink: #201202;
-  --bulb-glow: rgba(224, 138, 60, 0.22);
+  --bulb-ink: #1a0e02;
 
-  --grass: #6b7f4e;
-  --clay: #a9683f;
-  --field-line: rgba(241, 233, 223, 0.32);
+  --grass: #2a3122;
+  --clay: #382a20;
+  --field-line: rgba(246, 242, 236, 0.14);
 
-  --safe: #86b062;
-  --out: #d4614b;
+  --safe: #8fbf6a;
+  --out: #e0715b;
   --tie: #9a8e80;
 }
 
 :root[data-palette='slate'] {
   color-scheme: dark;
 
-  /* COOL NEUTRAL — the numbers carry the page; colour stays out of the way. */
-  --ink: #14181d;
-  --panel: #1d2229;
-  --panel-hi: #242b33;
-  --inset: #10141a;
-  --rule: #313944;
-  --rule-hi: #47515e;
+  /* MONO — colour out of the way entirely; the accent goes cool and quiet. */
+  --ink: #0d0f11;
+  --panel: #17191d;
+  --panel-hi: #1e2126;
+  --inset: #121417;
+  --rule: #262a30;
+  --rule-hi: #363b43;
 
-  --chalk: #eef1f5;
-  --chalk-dim: #b6bec9;
-  --chalk-faint: #9aa4b1;
+  --chalk: #f1f3f5;
+  --chalk-dim: #adb3bb;
+  --chalk-faint: #8f959d;
 
-  --bulb: #7fb3ff;
-  --bulb-ink: #0a1626;
-  --bulb-glow: rgba(127, 179, 255, 0.2);
+  --bulb: #6ea8fe;
+  --bulb-ink: #06101f;
 
-  --grass: #46707f;
-  --clay: #8a7a6a;
-  --field-line: rgba(238, 241, 245, 0.3);
+  --grass: #21282c;
+  --clay: #2a2724;
+  --field-line: rgba(241, 243, 245, 0.14);
 
-  --safe: #5fc0a0;
-  --out: #e2706b;
+  --safe: #56c2a2;
+  --out: #e8746c;
   --tie: #8b95a1;
 }
 
 :root {
-  --radius: 10px;
-  --radius-lg: 14px;
+  /*
+   * Three radii and no others. Corners at 3px read as utilitarian and cheap
+   * next to anything modern; a single soft scale is most of what separates a
+   * clean interface from a busy one.
+   */
+  --r-sm: 8px;
+  --r: 12px;
+  --r-lg: 16px;
 
-  --pad: clamp(14px, 4vw, 22px);
+  --pad: clamp(16px, 4.5vw, 24px);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
-  --font-display: 'Big Shoulders Display', 'Haettenschweiler', 'Arial Narrow', sans-serif;
-  --font: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-num: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  /*
+   * One family. This carried three — a condensed poster face for labels, a
+   * mono for figures, a sans for prose — and three voices arguing on a phone
+   * screen is most of what made it look busy. Inter does all of it; figures
+   * get tabular numerals instead of a separate typeface.
+   */
+  --font: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font);
+  --font-num: var(--font);
 }
 
 * {
@@ -177,11 +187,8 @@ body {
 
 body {
   min-height: 100dvh;
-  /* Lights above and behind the board, tinted by whichever palette is on. */
-  background-image:
-    radial-gradient(120% 60% at 50% -8%, var(--bulb-glow) 0%, transparent 58%),
-    radial-gradient(100% 70% at 50% 4%, var(--panel) 0%, var(--ink) 60%);
-  background-attachment: fixed;
+  /* Flat. The amber wash that used to sit behind every screen was the single
+     loudest thing in the interface, and it was decorating nothing. */
 }
 
 button {
@@ -198,27 +205,27 @@ button {
   outline-offset: 2px;
 }
 
-/* Every figure on this page is a scoreboard reading, so they all line up. */
+/* Figures line up in columns, so they are tabular wherever they appear. */
 .num {
-  font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
 }
 
-/* Painted signage: condensed, tight, and set in caps where it is a label. */
 .sign {
-  font-family: var(--font-display);
   font-weight: 800;
-  letter-spacing: -0.01em;
-  line-height: 0.95;
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 
-/* A stencilled label, the kind painted onto the board itself. */
+/*
+ * The one uppercase treatment in the interface. Caps and wide tracking are
+ * loud, so they are spent on section labels only — everything else earns its
+ * hierarchy from size and weight.
+ */
 .stencil {
-  font-family: var(--font-display);
   font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.16em;
+  font-size: 11px;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--chalk-faint);
 }
@@ -272,8 +279,7 @@ button {
   text-decoration: none;
   color: inherit;
   background: var(--panel-hi);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-lg);
+  border-radius: var(--r-lg);
   transition: border-color 0.15s ease, transform 0.12s ease;
 }
 
@@ -320,9 +326,8 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-bottom: 11px;
-  margin-bottom: 14px;
-  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0;
+  margin-bottom: 20px;
 }
 
 .mark {
@@ -332,7 +337,6 @@ button {
 }
 
 .wordmark {
-  font-family: var(--font-display);
   font-weight: 800;
   font-size: 25px;
   letter-spacing: -0.02em;
@@ -353,7 +357,6 @@ button {
 
 .masthead-meta b {
   display: block;
-  font-family: var(--font-num);
   font-size: 15px;
   font-weight: 600;
   color: var(--chalk);
@@ -365,11 +368,10 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 11px;
-  margin-bottom: 14px;
-  min-height: 34px;
-  border-bottom: 1px solid var(--rule);
+  gap: 16px;
+  padding-bottom: 0;
+  margin-bottom: 18px;
+  min-height: 38px;
 }
 
 .topbar a {
@@ -387,7 +389,6 @@ button {
   text-transform: uppercase;
   color: var(--chalk-dim);
   background: var(--panel);
-  border: 1px solid var(--rule);
   padding: 6px 11px;
   border-radius: 999px;
 }
@@ -398,10 +399,10 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 4px;
-  border: 1px solid var(--rule-hi);
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: var(--panel);
   color: var(--chalk-dim);
   flex-shrink: 0;
 }
@@ -423,7 +424,7 @@ button {
   background: var(--panel-hi);
   border: 1px solid var(--rule-hi);
   border-bottom: 0;
-  border-radius: 20px 20px 0 0;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
   padding: 16px var(--pad) calc(var(--safe-bottom) + 22px);
   animation: sheet-up 0.24s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
@@ -465,8 +466,7 @@ button {
   align-items: center;
   gap: 9px;
   padding: 9px 10px;
-  border-radius: 4px;
-  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
   background: var(--panel);
   text-align: left;
   min-width: 0;
@@ -479,10 +479,9 @@ button {
 
 .palette-swatch {
   display: flex;
-  border-radius: 3px;
+  border-radius: var(--r-sm);
   overflow: hidden;
   flex-shrink: 0;
-  border: 1px solid var(--rule-hi);
 }
 
 .palette-swatch i {
@@ -605,18 +604,12 @@ button {
 
 .reel-card {
   position: relative;
-  border-radius: 4px;
-  padding: 11px 10px 12px;
+  border-radius: var(--r);
+  padding: 16px 12px 18px;
   text-align: center;
-  /* A window cut into the board: darker than the panel, lit from inside. */
-  background:
-    radial-gradient(120% 80% at 50% 0%, var(--bulb-glow), transparent 62%),
-    var(--inset);
-  border: 1px solid var(--rule-hi);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--chalk) 7%, transparent),
-    inset 0 -14px 22px -18px color-mix(in srgb, var(--ink) 90%, black),
-    0 1px 0 color-mix(in srgb, var(--chalk) 5%, transparent);
+  /* A panel, not a lit window. The inset shadows and the glow inside it were
+     three effects doing the job one background step does. */
+  background: var(--panel);
   overflow: hidden;
   min-height: 86px;
   display: flex;
@@ -631,31 +624,28 @@ button {
   inset: 0 0 auto 0;
   height: 2px;
   background: var(--bulb);
-  opacity: 0.28;
+  opacity: 0;
   transition: opacity 0.2s ease;
 }
 
 .reel-card.rolling::before {
   opacity: 1;
-  box-shadow: 0 0 12px 2px var(--bulb-glow);
 }
 
 .reel-kicker {
-  font-family: var(--font-display);
-  font-size: 12px;
-  letter-spacing: 0.18em;
+  font-size: 11px;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--chalk-faint);
-  margin-bottom: 5px;
+  margin-bottom: 7px;
 }
 
 .reel-value {
-  font-family: var(--font-display);
-  font-size: clamp(22px, 7vw, 30px);
-  font-weight: 800;
-  letter-spacing: -0.005em;
-  line-height: 0.98;
+  font-size: clamp(18px, 5.4vw, 24px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
   text-wrap: balance;
   color: var(--chalk);
 }
@@ -694,21 +684,22 @@ button {
 /* The spin lands on the club's colours. Applied only once it has stopped —
    see the note in Game.tsx — so the reveal is the payoff and the cycling
    never strobes saturated colour. */
-.reel-card.team.landed {
-  background: var(--team-bg, var(--inset));
-  border-color: color-mix(in srgb, var(--team-fg, var(--rule-hi)) 58%, var(--team-bg, var(--inset)));
-}
-
-.reel-card.team.landed .reel-value {
-  color: var(--team-fg, var(--chalk));
-}
-
-.reel-card.team.landed .reel-kicker {
-  color: var(--team-fg, var(--chalk-dim));
-}
-
-.reel-card.team.landed::before {
-  background: var(--team-fg, var(--bulb));
+/*
+ * A club-filled reel card puts a saturated block the size of the SPIN button
+ * directly above it, and an orange club then reads as two accents stacked. The
+ * club takes a bar along the bottom of the card instead: the colour still
+ * lands with the spin, at a scale that cannot compete with the primary action.
+ */
+.reel-card.team.landed::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 11px;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--team-bg, var(--rule));
 }
 
 @keyframes reel-land {
@@ -732,11 +723,10 @@ button {
 .field {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 0.92;
-  border-radius: 4px;
+  aspect-ratio: 1 / 0.84;
+  border-radius: var(--r);
   overflow: hidden;
-  background: linear-gradient(180deg, var(--panel) 0%, var(--inset) 74%, var(--ink) 100%);
-  border: 1px solid var(--rule);
+  background: var(--inset);
 }
 
 .field-lines {
@@ -747,13 +737,13 @@ button {
 }
 
 .fl-grass {
-  fill: color-mix(in srgb, var(--grass) 26%, transparent);
-  stroke: color-mix(in srgb, var(--chalk) 12%, transparent);
-  stroke-width: 0.5;
+  fill: color-mix(in srgb, var(--grass) 30%, transparent);
+  stroke: var(--field-line);
+  stroke-width: 0.4;
 }
 
 .fl-dirt {
-  fill: color-mix(in srgb, var(--clay) 24%, transparent);
+  fill: color-mix(in srgb, var(--clay) 34%, transparent);
   stroke: none;
 }
 
@@ -761,19 +751,18 @@ button {
 .fl-line {
   fill: none;
   stroke: var(--field-line);
-  stroke-width: 0.7;
+  stroke-width: 0.5;
 }
 
 /* A position marker sits at its real spot on the field. */
 .spot {
   position: absolute;
   transform: translate(-50%, -50%);
-  min-width: 56px;
-  padding: 4px 6px 5px;
-  border-radius: 3px;
-  border: 1px dashed var(--rule-hi);
-  background: color-mix(in srgb, var(--inset) 82%, transparent);
-  backdrop-filter: blur(2px);
+  min-width: 58px;
+  padding: 6px 7px 7px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  backdrop-filter: blur(3px);
   text-align: center;
   line-height: 1.1;
 }
@@ -785,10 +774,9 @@ button {
  * without either needing to know what palette the page is in.
  */
 .spot.filled {
-  border-style: solid;
-  border-color: color-mix(in srgb, var(--team-fg, var(--rule-hi)) 58%, var(--team-bg, var(--panel-hi)));
-  background: var(--team-bg, color-mix(in srgb, var(--panel-hi) 94%, transparent));
-  box-shadow: 0 1px 3px color-mix(in srgb, #000 34%, transparent);
+  background: var(--team-bg, var(--panel-hi));
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--team-fg, var(--rule-hi)) 30%, var(--team-bg, var(--panel-hi)));
 }
 
 .spot.filled .spot-pos {
@@ -808,10 +796,9 @@ button {
 
 .spot-pos {
   display: block;
-  font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.07em;
   color: var(--chalk-faint);
 }
 
@@ -830,7 +817,7 @@ button {
 .spot-dash {
   display: block;
   font-size: 11px;
-  color: var(--rule-hi);
+  color: var(--chalk-faint);
   margin-top: 1px;
 }
 
@@ -852,22 +839,21 @@ button {
 
 
 .bench-slot:not(.filled) .bench-name {
-  color: var(--rule-hi);
+  color: var(--chalk-faint);
 }
 
 .bench-slot {
-  padding: 6px 6px 7px;
-  border-radius: 3px;
-  border: 1px dashed var(--rule-hi);
+  padding: 8px 6px 9px;
+  border-radius: var(--r-sm);
   background: var(--panel);
   text-align: center;
   min-width: 0;
 }
 
 .bench-slot.filled {
-  border-style: solid;
-  border-color: color-mix(in srgb, var(--team-fg, var(--rule-hi)) 58%, var(--team-bg, var(--panel-hi)));
   background: var(--team-bg, var(--panel-hi));
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--team-fg, var(--rule-hi)) 30%, var(--team-bg, var(--panel-hi)));
 }
 
 .bench-slot.filled .bench-pos {
@@ -886,10 +872,9 @@ button {
 
 .bench-pos {
   display: block;
-  font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.07em;
   color: var(--chalk-faint);
 }
 
@@ -913,15 +898,18 @@ button {
 }
 
 .bench-rating.empty {
-  color: var(--rule-hi);
+  color: var(--chalk-faint);
 }
 
 /* ---------- Live projection ---------- */
 
 .meters {
   display: grid;
-  gap: 6px;
-  margin-bottom: 12px;
+  gap: 11px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: var(--r);
+  background: var(--panel);
 }
 
 .meters .projection {
@@ -929,7 +917,7 @@ button {
 }
 
 .projection-bar span.over {
-  background: linear-gradient(90deg, var(--bulb), var(--out));
+  background: var(--out);
 }
 
 .projection-value.over {
@@ -965,25 +953,21 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 12px;
-  padding: 8px 12px;
-  border-radius: 4px;
-  background: var(--panel);
-  border: 1px solid var(--rule);
+  padding: 0;
+  background: none;
 }
 
 .projection-label {
-  font-family: var(--font-display);
-  font-size: 12px;
-  letter-spacing: 0.16em;
+  font-size: 11px;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--chalk-faint);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .projection-value {
-  font-family: var(--font-num);
   font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -994,7 +978,7 @@ button {
   position: relative;
   flex: 1;
   height: 5px;
-  border-radius: 3px;
+  border-radius: var(--r-sm);
   background: var(--rule);
   overflow: visible;
 }
@@ -1002,8 +986,8 @@ button {
 .projection-bar span {
   position: absolute;
   inset: 0 auto 0 0;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--bulb), var(--safe));
+  border-radius: 999px;
+  background: var(--safe);
   transition: width 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
@@ -1041,7 +1025,6 @@ button {
 }
 
 .meter-legend b {
-  font-family: var(--font-num);
   font-weight: 800;
   color: var(--bulb);
   margin-right: 3px;
@@ -1071,7 +1054,7 @@ button {
 
 .dock-slot {
   flex: 1 1 0;
-  border-radius: 3px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--rule);
   background: var(--panel);
   padding: 5px 1px 4px;
@@ -1174,7 +1157,7 @@ button {
 /* The row you tapped stays on screen and stays marked. */
 .cand.selected {
   border-left-color: var(--bulb);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--bulb) 14%, var(--panel-hi)) 0%, var(--panel) 100%);
+  background: color-mix(in srgb, var(--bulb) 12%, var(--panel-hi));
 }
 
 .pick-prompt.placing {
@@ -1196,7 +1179,6 @@ button {
 
 .dock-pos {
   display: block;
-  font-family: var(--font-display);
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -1214,7 +1196,7 @@ button {
 }
 
 .dock-slot:not(.filled) .dock-rating {
-  color: var(--rule-hi);
+  color: var(--chalk-faint);
 }
 
 /* An empty slot carries the going rate for that position rather than a dash.
@@ -1240,11 +1222,10 @@ button {
 }
 
 .pill {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 6px 11px;
-  border-radius: 3px;
-  border: 1px solid var(--rule-hi);
+  padding: 7px 13px;
+  border-radius: 999px;
   background: var(--panel);
   white-space: nowrap;
   overflow: hidden;
@@ -1255,9 +1236,8 @@ button {
    which uniform these players are wearing before you read a single name. */
 .pill.team {
   background: var(--team-bg, var(--panel));
-  border-color: color-mix(in srgb, var(--team-fg, var(--bulb)) 58%, var(--team-bg, var(--panel)));
   color: var(--team-fg, var(--bulb));
-  font-weight: 700;
+  font-weight: 650;
   min-width: 0;
 }
 
@@ -1272,7 +1252,6 @@ button {
 .respins {
   display: flex;
   gap: 6px;
-  margin-left: auto;
   flex-shrink: 0;
 }
 
@@ -1282,10 +1261,10 @@ button {
   gap: 5px;
   flex-shrink: 0;
   font-size: 12.5px;
-  font-weight: 650;
-  padding: 7px 11px;
-  border-radius: 3px;
-  border: 1px solid var(--rule-hi);
+  font-weight: 600;
+  padding: 8px 13px;
+  border-radius: 999px;
+  background: var(--panel);
   color: var(--chalk-dim);
   /* These are the only header controls anyone taps, so they clear the 44px
      guidance on the axis a thumb actually misses. */
@@ -1293,7 +1272,7 @@ button {
 }
 
 .pick-head .respin:not(:disabled):active {
-  border-color: var(--bulb);
+  background: var(--panel-hi);
   color: var(--bulb);
 }
 
@@ -1326,21 +1305,18 @@ button {
 }
 
 .filter-tab {
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  padding: 6px 10px 4px;
-  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 8px 12px;
+  border-radius: 999px;
   background: var(--panel);
-  border: 1px solid var(--rule);
   color: var(--chalk-faint);
-  min-width: 30px;
+  min-width: 34px;
+  transition: background 0.14s ease, color 0.14s ease;
 }
 
 .filter-tab.on {
   background: var(--bulb);
-  border-color: var(--bulb);
   color: var(--bulb-ink);
 }
 
@@ -1348,10 +1324,10 @@ button {
   flex: 1;
   min-width: 0;
   font-size: 13.5px;
-  padding: 8px 11px;
-  border-radius: 3px;
+  padding: 9px 13px;
+  border-radius: 999px;
+  border: 0;
   background: var(--panel);
-  border: 1px solid var(--rule);
   color: var(--chalk);
 }
 
@@ -1361,7 +1337,7 @@ button {
 
 .search:focus {
   outline: none;
-  border-color: var(--rule-hi);
+  background: var(--panel-hi);
 }
 
 /* ---------- Candidate list ---------- */
@@ -1397,22 +1373,20 @@ button {
   min-width: 0;
   overflow: hidden;
   text-align: left;
-  padding: 13px 14px;
-  background: var(--panel-hi);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  transition: border-color 0.12s ease, transform 0.1s ease;
+  padding: 14px 15px;
+  background: var(--panel);
+  border-radius: var(--r);
+  transition: background 0.12s ease, transform 0.1s ease;
 }
 
 .cand:active {
   transform: scale(0.99);
-  border-color: var(--bulb);
+  background: var(--panel-hi);
 }
 
 /* The badge is the club patch: solid team ground, the club's own second
    colour on it wherever that pairing is legible. */
 .cand-pos {
-  font-family: var(--font-display);
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -1420,7 +1394,7 @@ button {
   background: var(--team-bg, transparent);
   border: 1px solid
     color-mix(in srgb, var(--team-fg, var(--bulb)) 34%, var(--team-bg, transparent));
-  border-radius: 3px;
+  border-radius: var(--r-sm);
   padding: 3px 5px 2px;
   min-width: 34px;
   text-align: center;
@@ -1474,9 +1448,8 @@ button {
 
 .statcol small {
   display: block;
-  font-family: var(--font-display);
   font-size: 10px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.07em;
   color: var(--chalk-faint);
   font-weight: 700;
   margin-top: 0;
@@ -1561,7 +1534,6 @@ button {
   padding: 9px 13px;
   border-radius: 999px;
   background: var(--panel);
-  border: 1px solid var(--rule-hi);
 }
 
 .slot-chip:active {
@@ -1579,7 +1551,7 @@ button {
 
 .board-slot {
   padding: 7px 9px;
-  border-radius: 9px;
+  border-radius: var(--r);
   background: var(--team-bg, var(--panel));
   border: 1px solid color-mix(in srgb, var(--team-fg, var(--rule)) 58%, var(--team-bg, var(--panel)));
   min-width: 0;
@@ -1608,8 +1580,7 @@ button {
 }
 
 .board-slot.empty {
-  border-style: dashed;
-  opacity: 0.55;
+  opacity: 0.5;
 }
 
 .board-slot.next {
@@ -1650,16 +1621,14 @@ button {
   width: 100%;
   min-height: 56px;
   padding: 0 20px;
-  border-radius: 6px;
-  font-family: var(--font-display);
-  font-size: 25px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--bulb) 82%, white), var(--bulb));
+  border-radius: var(--r);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  /* Flat fill. The gradient and the drop-glow under this button were the two
+     things that made the whole screen read as a mobile-game ad. */
+  background: var(--bulb);
   color: var(--bulb-ink);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bulb) 45%, transparent),
-    0 10px 30px -14px var(--bulb);
   transition: transform 0.1s ease, opacity 0.15s ease;
 }
 
@@ -1693,26 +1662,25 @@ button {
 /* ---------- Result ---------- */
 
 .result-record {
-  font-family: var(--font-display);
-  font-size: clamp(72px, 26vw, 118px);
+  font-size: clamp(46px, 15vw, 76px);
   font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 0.86;
-  margin: 4px 0 10px;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  margin: 4px 0 14px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .result-record.perfect {
   color: var(--bulb);
-  text-shadow: 0 0 40px var(--bulb-glow);
 }
 
 .verdict {
-  font-size: 16px;
-  font-weight: 650;
+  font-size: 15px;
+  font-weight: 500;
   color: var(--chalk-dim);
-  line-height: 1.45;
-  margin-bottom: 18px;
+  line-height: 1.5;
+  margin-bottom: 20px;
 }
 
 /* ---------- Personal best ---------- */
@@ -1730,11 +1698,10 @@ button {
   margin-bottom: 18px;
   border-left: 3px solid var(--rule-hi);
   background: var(--panel);
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 var(--r) var(--r) 0;
 }
 
 .pb b {
-  font-family: var(--font-display);
   font-size: 13px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1773,8 +1740,7 @@ button {
   align-items: baseline;
   padding: 11px 13px;
   background: var(--panel-hi);
-  border: 1px solid var(--rule);
-  border-radius: 11px;
+  border-radius: var(--r);
 }
 
 .factor-label {
@@ -1798,7 +1764,7 @@ button {
 .bar {
   position: relative;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--r-sm);
   background: var(--rule);
   grid-column: 1 / -1;
   margin-top: 6px;
@@ -1809,7 +1775,7 @@ button {
   position: absolute;
   top: 0;
   bottom: 0;
-  border-radius: 2px;
+  border-radius: var(--r-sm);
 }
 
 .stat-strip {
@@ -1822,14 +1788,12 @@ button {
 .stat-cell {
   padding: 11px 8px;
   background: var(--panel-hi);
-  border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   text-align: center;
 }
 
 .stat-cell b {
   display: block;
-  font-family: var(--font-num);
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.04em;
@@ -1837,7 +1801,6 @@ button {
 
 .stat-cell small {
   display: block;
-  font-family: var(--font-display);
   font-size: 11.5px;
   color: var(--chalk-faint);
   margin-top: 3px;
@@ -1870,9 +1833,8 @@ button {
 }
 
 .section-head {
-  font-family: var(--font-display);
-  font-size: 13px;
-  letter-spacing: 0.16em;
+  font-size: 11px;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--chalk-faint);
   font-weight: 700;

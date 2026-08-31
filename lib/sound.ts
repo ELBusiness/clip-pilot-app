@@ -178,10 +178,13 @@ export function vibrate(pattern: number | number[]): void {
 export type Palette = 'night' | 'day' | 'clay' | 'slate'
 
 export const PALETTES: { id: Palette; name: string; note: string; swatch: string[] }[] = [
-  { id: 'night', name: 'Night game', note: 'Painted steel under the lights', swatch: ['#101b16', '#2f7a4a', '#ffb627'] },
-  { id: 'day', name: 'Day game', note: 'A paper scorecard in the sun', swatch: ['#f3efe4', '#4a8f5c', '#b4661a'] },
-  { id: 'clay', name: 'Clay', note: 'Infield dirt at dusk, warm neutral', swatch: ['#191512', '#a9683f', '#e08a3c'] },
-  { id: 'slate', name: 'Slate', note: 'Cool neutral, colour out of the way', swatch: ['#14181d', '#46707f', '#7fb3ff'] },
+  // Swatches are page, panel and accent, in that order, and must match the
+  // palette blocks in globals.css — a stale swatch advertises a scheme the
+  // page will not actually show.
+  { id: 'night', name: 'Midnight', note: 'Near-black, cool cast', swatch: ['#0b0e13', '#151a22', '#f97a1f'] },
+  { id: 'day', name: 'Daylight', note: 'Paper white', swatch: ['#f2f3f6', '#ffffff', '#b64708'] },
+  { id: 'clay', name: 'Warm', note: 'Near-black, weighted brown', swatch: ['#100d0b', '#1c1815', '#e08a3c'] },
+  { id: 'slate', name: 'Mono', note: 'Colour out of the way', swatch: ['#0d0f11', '#17191d', '#6ea8fe'] },
 ]
 
 const PALETTE_KEY = 'perfect-season:palette'

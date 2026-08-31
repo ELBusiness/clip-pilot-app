@@ -1,12 +1,11 @@
 'use client'
 
 /**
- * The header board.
+ * The header.
  *
- * A mark, the game's name, and where you are in the draft, set on a painted
- * band and separated from the field by a chalk rule — the way a scoreboard's
- * header sits above its panels. It replaces two floating pills that carried
- * the same words with none of the identity.
+ * A mark, the game's name, and where you are in the draft. It sits on the page
+ * with nothing under it — the rule that used to separate it from the board was
+ * one more line doing work that whitespace already does.
  */
 export default function Masthead({
   mode,
